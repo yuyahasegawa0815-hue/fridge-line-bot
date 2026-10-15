@@ -2,6 +2,7 @@ import { db, RECEIPT_BUCKET } from "./supabase";
 import { extractReceipt, type ExtractedReceipt } from "./receipt-ai";
 import { estimateExpiry, pickStorage, type ShelfLife, type Storage } from "./expiry";
 import type { Member } from "./household";
+import { markBoughtByNames } from "./shopping";
 
 interface MasterRow extends ShelfLife {
   id: number;
@@ -152,5 +153,6 @@ export async function confirmReceipt(member: Member, receiptId: string, purchase
     if (error) throw error;
   }
   await db().from("receipts").update({ status: "confirmed", purchased_on: purchasedOn }).eq("id", receiptId);
+  await markBoughtByNames(member.household_id, items.map((i) => i.name));
   return { added: items.length };
 }

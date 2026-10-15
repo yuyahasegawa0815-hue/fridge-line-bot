@@ -46,7 +46,10 @@ export default function InventoryPage() {
     <main>
       <div className="fields" style={{ justifyContent: "space-between" }}>
         <h1>冷蔵庫の中身（{items.length}件）</h1>
-        <a href="/shopping">買い物リスト →</a>
+        <span className="fields">
+          <a href="/shopping">買い物リスト</a>
+          <a href="/report">食費</a>
+        </span>
       </div>
       {error && <p className="error">{error}</p>}
       {items.map((it) => {

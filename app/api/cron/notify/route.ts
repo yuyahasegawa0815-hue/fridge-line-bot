@@ -1,6 +1,8 @@
 import { lineApi, liffUrl } from "@/src/lib/line";
 import { dueItemsByHousehold } from "@/src/lib/inventory";
 import { buildNotice, selectDue, todayJst, type Slot } from "@/src/lib/notify";
+import { householdsWithActivity, monthlyReports } from "@/src/lib/report-data";
+import { reportText, shiftMonth } from "@/src/lib/report";
 
 // Vercel Cron から朝と夕方に呼ばれる（vercel.json）。CRON_SECRET で呼び出し元を確認する。
 export async function GET(req: Request) {
@@ -22,5 +24,19 @@ export async function GET(req: Request) {
       console.error("通知の送信に失敗", household.lineGroupId, err);
     }
   }
-  return Response.json({ slot, today, sent });
+  // 毎月1日の朝は、先月の食費と廃棄額を振り返る。
+  let reports = 0;
+  if (slot === "morning" && today.endsWith("-01")) {
+    const last = shiftMonth(today.slice(0, 7), -1);
+    for (const household of await householdsWithActivity(last)) {
+      try {
+        const [cur, prev] = await monthlyReports(household.id, last, 2);
+        await lineApi().pushMessage({ to: household.lineGroupId, messages: [{ type: "text", text: reportText(cur, prev, "先月の食費", liffUrl("/report")) }] });
+        reports++;
+      } catch (err) {
+        console.error("月次レポートの送信に失敗", household.lineGroupId, err);
+      }
+    }
+  }
+  return Response.json({ slot, today, sent, reports });
 }

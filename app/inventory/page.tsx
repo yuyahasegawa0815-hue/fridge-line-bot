@@ -32,9 +32,9 @@ export default function InventoryPage() {
     load();
   }, []);
 
-  async function set(id: string, remaining_pct: number, discard = false) {
+  async function patch(body: object) {
     try {
-      await api("/api/inventory", { method: "PATCH", body: JSON.stringify({ id, remaining_pct, discard }) });
+      await api("/api/inventory", { method: "PATCH", body: JSON.stringify(body) });
       await load();
     } catch (e) {
       setError((e as Error).message);
@@ -58,12 +58,16 @@ export default function InventoryPage() {
             </div>
             <div className="fields">
               {LEVELS.map((l) => (
-                <button key={l.pct} className={it.remaining_pct === l.pct ? "on" : ""} onClick={() => set(it.id, l.pct)}>
+                <button key={l.pct} className={it.remaining_pct === l.pct ? "on" : ""} onClick={() => patch({ id: it.id, remaining_pct: l.pct })}>
                   {l.label}
                 </button>
               ))}
-              <button onClick={() => set(it.id, 0)}>使い切った</button>
-              <button onClick={() => set(it.id, it.remaining_pct, true)}>捨てた</button>
+              <button onClick={() => patch({ id: it.id, remaining_pct: 0 })}>使い切った</button>
+              <button onClick={() => patch({ id: it.id, remaining_pct: it.remaining_pct, discard: true })}>捨てた</button>
+            </div>
+            <div className="fields muted">
+              期限
+              <input type="date" value={it.expires_on ?? ""} onChange={(e) => patch({ id: it.id, expires_on: e.target.value || null })} />
             </div>
           </div>
         );

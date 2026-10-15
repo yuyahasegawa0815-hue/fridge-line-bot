@@ -38,7 +38,7 @@ async function reply(token: string | undefined, text: string, groupId?: string) 
 async function handleEvent(event: webhook.Event) {
   try {
     if (event.type === "join") {
-      await reply(event.replyToken, "冷蔵庫の管理を始めます。レシートの写真をこのグループに送ると、在庫に登録します。\n「在庫」で一覧、「追加 いちご 398」で手入力できます。");
+      await reply(event.replyToken, "Fridgy（フリッジー）です。冷蔵庫の管理を始めます。レシートの写真をこのグループに送ると、在庫に登録します。\n「在庫」で一覧、「追加 いちご 398」で手入力できます。");
       return;
     }
     if (event.type !== "message" || event.source?.type !== "group" || !event.source.userId) return;

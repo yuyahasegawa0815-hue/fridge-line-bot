@@ -44,7 +44,10 @@ export default function InventoryPage() {
   if (!items) return <main className={error ? "error" : "muted"}>{error || "読み込み中…"}</main>;
   return (
     <main>
-      <h1>冷蔵庫の中身（{items.length}件）</h1>
+      <div className="fields" style={{ justifyContent: "space-between" }}>
+        <h1>冷蔵庫の中身（{items.length}件）</h1>
+        <a href="/shopping">買い物リスト →</a>
+      </div>
       {error && <p className="error">{error}</p>}
       {items.map((it) => {
         const d = daysLeft(it.expires_on);

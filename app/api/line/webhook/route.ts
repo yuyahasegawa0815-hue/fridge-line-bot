@@ -18,7 +18,8 @@ export const maxDuration = 60;
 
 const STORAGE_LABEL = { fridge: "冷蔵", freezer: "冷凍", pantry: "常温" } as const;
 
-const HELP = `Fridgy の使い方
+// 画面へのリンクは実行時の LIFF ID から作る。
+const help = () => `Fridgy の使い方
 
 【登録する】
 ・レシートの写真をこのグループに送る
@@ -31,19 +32,23 @@ const HELP = `Fridgy の使い方
 　卵
 　（1行に1つ。金額・残量（たっぷり/半分/少し）・冷蔵/冷凍/常温・○日前 は省略できます）
 ・在庫の画面の「食材を追加」からも登録できます
+　${liffUrl("/inventory")}
 
 【見る・記録する】
 ・在庫：冷蔵庫の中身と、残量や期限を直す画面
+　${liffUrl("/inventory")}
 ・朝8時と夕方5時に、期限が近い食材をお知らせ
 　→「減った」「使い切った」「捨てた」ボタンで記録
 
 【献立と買い物】
 ・献立 または レシピ：在庫から今日の献立を3品（例：レシピ 和食で）
 ・買い物：買い物リスト
+　${liffUrl("/shopping")}
 ・買う 品名：リストに追加（例：買う 牛乳 卵）
 
 【食費】
-・食費：今月の食費と廃棄額（毎月1日に先月分も届きます）`;
+・食費：今月の食費と廃棄額（毎月1日に先月分も届きます）
+　${liffUrl("/report")}`;
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -117,7 +122,7 @@ async function handleEvent(event: webhook.Event) {
       return reply(event.replyToken, `在庫 ${items.length}件\n${lines.join("\n")}\n\n編集：${liffUrl("/inventory")}`);
     }
 
-    if (/^(使い方|ヘルプ|help|[?？])/i.test(text)) return reply(event.replyToken, HELP);
+    if (/^(使い方|ヘルプ|help|[?？])/i.test(text)) return reply(event.replyToken, help());
 
     const menu = text.match(/^(?:献立|レシピ)(?:\s+(.+))?$/s);
     if (menu) {

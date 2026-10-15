@@ -1,6 +1,6 @@
 import { db } from "./supabase";
 import { estimateExpiry, lossYen, pickStorage, type Storage } from "./expiry";
-import { stepDown, type DueItem, type ItemAction } from "./notify";
+import { stepDown, todayJst, type DueItem, type ItemAction } from "./notify";
 import type { Member } from "./household";
 
 export async function listActive(householdId: string) {
@@ -14,26 +14,36 @@ export async function listActive(householdId: string) {
   return data;
 }
 
-// 「追加 いちご 398」のようなトークでの手入力登録。
-export async function addManual(member: Member, name: string, priceYen: number | null) {
+export interface ManualItem {
+  name: string;
+  priceYen: number | null;
+  storage?: Storage | null;
+  remainingPct?: 25 | 50 | 100;
+  purchasedOn?: string; // YYYY-MM-DD。省略時は今日
+}
+
+// トークや一覧画面からの手入力登録。すでに冷蔵庫にある物は買った日をさかのぼって期限を出す。
+export async function addManual(member: Member, input: ManualItem) {
   const cols = "id, default_storage, fridge_days, freezer_days, pantry_days";
-  const byName = await db().from("food_master").select(cols).eq("name", name).limit(1).maybeSingle();
+  const byName = await db().from("food_master").select(cols).eq("name", input.name).limit(1).maybeSingle();
   const m =
     byName.data ??
-    (await db().from("food_master").select(cols).contains("aliases", [name]).limit(1).maybeSingle()).data;
-  const today = new Date().toISOString().slice(0, 10);
-  const storage: Storage = m ? pickStorage(null, m.default_storage, m) : "fridge";
+    (await db().from("food_master").select(cols).contains("aliases", [input.name]).limit(1).maybeSingle()).data;
+  const purchasedOn = input.purchasedOn ?? todayJst();
+  const storage: Storage = m ? pickStorage(input.storage ?? null, m.default_storage, m) : (input.storage ?? "fridge");
+  const expiresOn = m ? estimateExpiry(purchasedOn, storage, m) : null;
   const { error } = await db().from("inventory_items").insert({
     household_id: member.household_id,
     food_master_id: m?.id ?? null,
-    name,
+    name: input.name,
     storage,
-    price_yen: priceYen,
-    purchased_on: today,
-    expires_on: m ? estimateExpiry(today, storage, m) : null,
+    price_yen: input.priceYen,
+    purchased_on: purchasedOn,
+    expires_on: expiresOn,
+    remaining_pct: input.remainingPct ?? 100,
   });
   if (error) throw error;
-  return { matched: !!m };
+  return { matched: !!m, expiresOn };
 }
 
 // 残量の更新。0 にすると「使い切った」、discard なら「捨てた」で閉じる。

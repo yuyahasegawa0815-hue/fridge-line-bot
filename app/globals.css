@@ -1,0 +1,17 @@
+:root { --fg: #1f2328; --muted: #656d76; --line: #d0d7de; --accent: #06c755; --warn: #fff4d6; --bg: #fff; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, "Hiragino Sans", sans-serif; color: var(--fg); background: var(--bg); }
+main { padding: 16px; max-width: 640px; margin: 0 auto; }
+h1 { font-size: 18px; margin: 0 0 12px; }
+.muted { color: var(--muted); font-size: 13px; }
+.row { border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-bottom: 8px; display: grid; gap: 6px; }
+.row.low { background: var(--warn); }
+.row.off { opacity: .5; }
+.fields { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+input, select { font-size: 16px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; }
+input.name { flex: 1 1 160px; }
+input.num { width: 90px; }
+button { font-size: 15px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--line); background: #f6f8fa; }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); width: 100%; padding: 12px; font-size: 16px; }
+button.on { background: var(--fg); color: #fff; }
+.error { color: #cf222e; }

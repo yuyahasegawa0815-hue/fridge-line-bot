@@ -9,6 +9,8 @@ import { daysUntil, decodeAction, todayJst } from "@/src/lib/notify";
 import { suggestRecipes } from "@/src/lib/recipe-ai";
 import { buildRecipes, decodeShop } from "@/src/lib/recipe-message";
 import { addShopping, listShopping } from "@/src/lib/shopping";
+import { monthlyReports } from "@/src/lib/report-data";
+import { reportText } from "@/src/lib/report";
 
 // AI読み取りに数十秒かかることがあるため
 export const maxDuration = 60;
@@ -22,6 +24,7 @@ const HELP = `Fridgy の使い方
 ・献立：在庫から今日の献立を3品（例：献立 和食で）
 ・買い物：買い物リスト
 ・買う 品名：リストに追加（例：買う 牛乳 卵）
+・食費：今月の食費と廃棄額
 ・朝8時と夕方5時に、期限が近い食材をお知らせします`;
 
 export async function POST(req: Request) {
@@ -108,6 +111,11 @@ async function handleEvent(event: webhook.Event) {
         menu[1]?.trim().slice(0, 100) ?? "",
       );
       return reply(event.replyToken, buildRecipes(recipes, liffUrl("/shopping")), event.source.groupId);
+    }
+
+    if (text === "食費" || text === "家計") {
+      const [cur, prev] = await monthlyReports(member.household_id, todayJst().slice(0, 7), 2);
+      return reply(event.replyToken, reportText(cur, prev, "今月の食費", liffUrl("/report")));
     }
 
     if (text === "買い物" || text === "買い物リスト") {

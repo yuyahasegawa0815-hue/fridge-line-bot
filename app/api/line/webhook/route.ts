@@ -5,6 +5,7 @@ import { lineApi, lineBlob, liffUrl } from "@/src/lib/line";
 import { ensureMember } from "@/src/lib/household";
 import { createDraftReceipt } from "@/src/lib/receipts";
 import { addManual, applyNoticeAction, listActive } from "@/src/lib/inventory";
+import { parseAddLines } from "@/src/lib/add-parse";
 import { daysUntil, decodeAction, todayJst } from "@/src/lib/notify";
 import { suggestRecipes } from "@/src/lib/recipe-ai";
 import { buildRecipes, decodeShop } from "@/src/lib/recipe-message";
@@ -18,14 +19,31 @@ export const maxDuration = 60;
 const STORAGE_LABEL = { fridge: "冷蔵", freezer: "冷凍", pantry: "常温" } as const;
 
 const HELP = `Fridgy の使い方
-・レシートの写真を送る：在庫に登録
-・在庫：冷蔵庫の中身
-・追加 品名 金額：手入力（例：追加 牛乳 198）
-・献立：在庫から今日の献立を3品（例：献立 和食で）
+
+【登録する】
+・レシートの写真をこのグループに送る
+　→ 読み取り結果の確認画面が届くので、直して「在庫に登録」
+・追加 品名 金額：手で登録（例：追加 牛乳 198）
+・すでに冷蔵庫にある物や、レシートを忘れた物はまとめて登録できます
+　追加
+　キャベツ 半分 3日前
+　豚こま 400 冷凍
+　卵
+　（1行に1つ。金額・残量（たっぷり/半分/少し）・冷蔵/冷凍/常温・○日前 は省略できます）
+・在庫の画面の「食材を追加」からも登録できます
+
+【見る・記録する】
+・在庫：冷蔵庫の中身と、残量や期限を直す画面
+・朝8時と夕方5時に、期限が近い食材をお知らせ
+　→「減った」「使い切った」「捨てた」ボタンで記録
+
+【献立と買い物】
+・献立 または レシピ：在庫から今日の献立を3品（例：レシピ 和食で）
 ・買い物：買い物リスト
 ・買う 品名：リストに追加（例：買う 牛乳 卵）
-・食費：今月の食費と廃棄額
-・朝8時と夕方5時に、期限が近い食材をお知らせします`;
+
+【食費】
+・食費：今月の食費と廃棄額（毎月1日に先月分も届きます）`;
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -54,7 +72,7 @@ async function reply(token: string | undefined, content: string | messagingApi.M
 async function handleEvent(event: webhook.Event) {
   try {
     if (event.type === "join") {
-      await reply(event.replyToken, "Fridgy（フリッジー）です。冷蔵庫の管理を始めます。レシートの写真をこのグループに送ると、在庫に登録します。\n「在庫」で一覧、「献立」で今日の献立、「使い方」でできることの一覧が出ます。");
+      await reply(event.replyToken, "Fridgy（フリッジー）です。冷蔵庫の管理を始めます。レシートの写真をこのグループに送ると、在庫に登録します。\n「使い方」と送ると、できることの一覧が出ます。");
       return;
     }
     if (event.source?.type !== "group" || !event.source.userId) return;
@@ -99,7 +117,7 @@ async function handleEvent(event: webhook.Event) {
       return reply(event.replyToken, `在庫 ${items.length}件\n${lines.join("\n")}\n\n編集：${liffUrl("/inventory")}`);
     }
 
-    if (text === "使い方" || text === "ヘルプ") return reply(event.replyToken, HELP);
+    if (/^(使い方|ヘルプ|help|[?？])/i.test(text)) return reply(event.replyToken, HELP);
 
     const menu = text.match(/^(?:献立|レシピ)(?:\s+(.+))?$/s);
     if (menu) {
@@ -130,10 +148,22 @@ async function handleEvent(event: webhook.Event) {
       return reply(event.replyToken, added.length ? `買い物リストに追加しました：${added.join("、")}` : "もうリストに入っています。");
     }
 
-    const add = text.match(/^追加\s+(\S+)(?:\s+(\d+))?/);
+    const add = text.match(/^追加(?:\s+([\s\S]*))?$/);
     if (add) {
-      const { matched } = await addManual(member, add[1], add[2] ? Number(add[2]) : null);
-      return reply(event.replyToken, `${add[1]}を在庫に追加しました${matched ? "" : "（期限の目安が分からないので、一覧画面で期限を入れてください）"}。`);
+      const entries = parseAddLines(add[1] ?? "");
+      if (!entries.length) {
+        return reply(event.replyToken, `「追加」のあとに品名を書いてください。\n例：追加 牛乳 198\n\n複数あるときは1行に1つ：\n追加\nキャベツ 半分 3日前\n豚こま 400 冷凍\n\n画面から登録：${liffUrl("/inventory")}`);
+      }
+      const today = todayJst();
+      const unknown: string[] = [];
+      for (const e of entries) {
+        const purchasedOn = new Date(Date.parse(today) - e.daysAgo * 86_400_000).toISOString().slice(0, 10);
+        const { matched } = await addManual(member, { ...e, purchasedOn });
+        if (!matched) unknown.push(e.name);
+      }
+      const names = entries.map((e) => e.name).join("、");
+      const note = unknown.length ? `\n\n${unknown.join("、")}は期限の目安が分からないので、一覧画面で期限を入れてください：${liffUrl("/inventory")}` : "";
+      return reply(event.replyToken, `${entries.length}件を在庫に追加しました：${names}${note}`);
     }
   } catch (err) {
     console.error(err);

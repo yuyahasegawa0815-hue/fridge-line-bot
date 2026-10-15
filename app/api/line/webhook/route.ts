@@ -4,7 +4,8 @@ import { env } from "@/src/lib/env";
 import { lineApi, lineBlob, liffUrl } from "@/src/lib/line";
 import { ensureMember } from "@/src/lib/household";
 import { createDraftReceipt } from "@/src/lib/receipts";
-import { addManual, listActive } from "@/src/lib/inventory";
+import { addManual, applyNoticeAction, listActive } from "@/src/lib/inventory";
+import { decodeAction } from "@/src/lib/notify";
 
 // AI読み取りに数十秒かかることがあるため
 export const maxDuration = 60;
@@ -41,7 +42,16 @@ async function handleEvent(event: webhook.Event) {
       await reply(event.replyToken, "Fridgy（フリッジー）です。冷蔵庫の管理を始めます。レシートの写真をこのグループに送ると、在庫に登録します。\n「在庫」で一覧、「追加 いちご 398」で手入力できます。");
       return;
     }
-    if (event.type !== "message" || event.source?.type !== "group" || !event.source.userId) return;
+    if (event.source?.type !== "group" || !event.source.userId) return;
+
+    if (event.type === "postback") {
+      const parsed = decodeAction(event.postback.data);
+      if (!parsed) return;
+      const member = await ensureMember(event.source.groupId, event.source.userId);
+      return reply(event.replyToken, await applyNoticeAction(member.household_id, parsed.itemId, parsed.action));
+    }
+
+    if (event.type !== "message") return;
     const member = await ensureMember(event.source.groupId, event.source.userId);
     const message = event.message;
 

@@ -61,6 +61,31 @@ ${where}の冷蔵庫の中身を覚えておいて、
 
 これからよろしくね😊`;
 
+// 友だち追加の直後に出す選択肢。ボタンは何度でも押せる。
+const SETUP_CHOICE: messagingApi.TemplateMessage = {
+  type: "template",
+  altText: "1人で使う？それとも誰かと共有する？",
+  template: {
+    type: "buttons",
+    text: "僕をどうやって使う？👇",
+    actions: [
+      { type: "postback", label: "1人で使う", data: "setup:solo", displayText: "1人で使う" },
+      { type: "postback", label: "共有する", data: "setup:share", displayText: "共有する" },
+    ],
+  },
+};
+
+// ボットはLINEグループを作れないので、作り方を案内する。
+const SHARE_GUIDE = `👫 家族やパートナーと一緒に使うなら、LINEグループに僕を招待してね！
+
+1️⃣ LINEのホーム画面で「グループ作成」をタップ
+2️⃣ 一緒に使う人と、僕（Fridgy）を選んでグループを作る
+3️⃣ 僕がグループに入ったら、そこで挨拶と使い方を送るね
+
+もうグループがあるなら、そのグループの「招待」から僕を追加するだけでOK🙆
+
+※グループの冷蔵庫は、このトークとは別に管理するよ。みんなで使うときはグループに写真やメッセージを送ってね📸`;
+
 export async function POST(req: Request) {
   const body = await req.text();
   const signature = req.headers.get("x-line-signature") ?? "";
@@ -106,11 +131,22 @@ async function handleEvent(event: webhook.Event) {
     if ((event.type === "join" && !chat.personal) || (event.type === "follow" && chat.personal)) {
       const householdId = await ensureHousehold(chat.chatId);
       const link = (path: string) => liffUrl(path, householdId);
-      await replyMany(event.replyToken, [greeting(chat.personal ? "あなた" : "このグループ"), help(link)]);
+      if (!chat.personal) {
+        await replyMany(event.replyToken, [greeting("このグループ"), help(link)]);
+        return;
+      }
+      // 友だち追加のときは、一人で使うか誰かと共有するかを選んでもらう
+      await lineApi().replyMessage({ replyToken: event.replyToken!, messages: [{ type: "text", text: greeting("あなたやご家族") }, SETUP_CHOICE] });
       return;
     }
     const userId = chat.userId;
     if (!userId) return;
+
+    if (event.type === "postback" && event.postback.data.startsWith("setup:")) {
+      if (event.postback.data === "setup:share") return reply(event.replyToken, SHARE_GUIDE);
+      const member = await ensureMember(chat.chatId, userId);
+      return reply(event.replyToken, help((path) => liffUrl(path, member.household_id)));
+    }
 
     if (event.type === "postback") {
       const shop = decodeShop(event.postback.data);

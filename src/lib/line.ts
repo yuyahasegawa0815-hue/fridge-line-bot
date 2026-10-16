@@ -14,8 +14,10 @@ export function lineBlob() {
   return blob;
 }
 
-export function liffUrl(path: string) {
-  return `https://liff.line.me/${env.liffId()}${path}`;
+// householdId を付けると、画面がその世帯（グループ／個人トーク）の冷蔵庫を開く。
+export function liffUrl(path: string, householdId?: string) {
+  const h = householdId ? `${path.includes("?") ? "&" : "?"}h=${householdId}` : "";
+  return `https://liff.line.me/${env.liffId()}${path}${h}`;
 }
 
 // LIFF から送られた ID トークンを LINE に検証させ、LINE ユーザーIDを返す。

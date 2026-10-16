@@ -1,6 +1,6 @@
 # Fridgy（フリッジー）
 
-Fridgy は、夫婦のLINEグループで使う、冷蔵庫の在庫管理ボットです。設計方針は「冷蔵庫管理ツール MVP設計方針」ドキュメントを参照してください。
+Fridgy は、LINEで使う冷蔵庫の在庫管理ボットです。家族のLINEグループに招待しても、友だち追加して1対1のトークで一人で使ってもかまいません。冷蔵庫（在庫・買い物リスト・食費）はグループごと、個人トークは人ごとに分かれます。設計方針は「冷蔵庫管理ツール MVP設計方針」ドキュメントを参照してください。
 
 ## いまできること（段階1〜4）
 
@@ -40,12 +40,12 @@ Fridgy は、夫婦のLINEグループで使う、冷蔵庫の在庫管理ボッ
 
 1. **Supabase**：プロジェクトを作り、SQL エディタで `supabase/migrations/0001_init.sql` → `supabase/seed/food_master.sql` → `supabase/migrations/0002_fridge_photo.sql` の順に実行。Storage に非公開バケット `receipts` を作る。
 2. **LINE**：LINE Developers でプロバイダーを作り、次の2つのチャネルを作る。
-   - Messaging API チャネル：チャネルシークレットとチャネルアクセストークン（長期）を控える。「グループトーク・複数人トークへの参加を許可する」をオン、応答メッセージはオフ。
+   - Messaging API チャネル：チャネルシークレットとチャネルアクセストークン（長期）を控える。「グループトーク・複数人トークへの参加を許可する」をオン、応答メッセージはオフ。個人トークの挨拶は Fridgy が送るので、LINE Official Account Manager の「あいさつメッセージ」もオフ。
    - LINE ログインチャネル：LIFF アプリを追加（サイズ Full、エンドポイント URL は Vercel の URL、スコープ `openid`）。チャネルIDと LIFF ID を控える。
 3. **Claude API**：Claude Console で API キーを作る。
 4. **Vercel**：このリポジトリをインポートし、`.env.example` の値を環境変数に入れてデプロイ。`CRON_SECRET` には長いランダム文字列を入れる（Vercel が定期実行のときにこの値を付けて呼び出す）。無料プランでは定期実行の時刻が指定した1時間の中で前後します。
 5. Messaging API チャネルの Webhook URL に `https://<VercelのURL>/api/line/webhook` を設定して「検証」。
-6. ボット（表示名「Fridgy」）を友だち追加し、夫婦のグループに招待する。
+6. ボット（表示名「Fridgy」）を友だち追加し、夫婦のグループに招待する（一人で使うなら、友だち追加したトークでそのまま話しかける）。
 
 ## 開発
 

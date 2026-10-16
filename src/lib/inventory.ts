@@ -107,9 +107,9 @@ export async function dueItemsByHousehold(today: string) {
     .not("expires_on", "is", null)
     .lte("expires_on", limit);
   if (error) throw error;
-  const groups = new Map<string, { lineGroupId: string; items: DueItem[] }>();
+  const groups = new Map<string, { id: string; lineGroupId: string; items: DueItem[] }>();
   for (const row of data as unknown as (DueItem & { households: { id: string; line_group_id: string } })[]) {
-    const g = groups.get(row.households.id) ?? { lineGroupId: row.households.line_group_id, items: [] };
+    const g = groups.get(row.households.id) ?? { id: row.households.id, lineGroupId: row.households.line_group_id, items: [] };
     g.items.push({ id: row.id, name: row.name, expires_on: row.expires_on, remaining_pct: row.remaining_pct });
     groups.set(row.households.id, g);
   }

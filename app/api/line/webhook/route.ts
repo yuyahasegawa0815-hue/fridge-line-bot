@@ -24,6 +24,8 @@ const help = () => `Fridgy の使い方
 【登録する】
 ・レシートの写真をこのグループに送る
 　→ 読み取り結果の確認画面が届くので、直して「在庫に登録」
+・冷蔵庫の中の写真を送る
+　→ 見つかった食材の一覧が届くので、今ある物を選んで登録（写りきらなかった物も足せます）
 ・追加 品名 金額：手で登録（例：追加 牛乳 198）
 ・すでに冷蔵庫にある物や、レシートを忘れた物はまとめて登録できます
 　追加
@@ -104,8 +106,14 @@ async function handleEvent(event: webhook.Event) {
       const chunks: Buffer[] = [];
       for await (const chunk of stream) chunks.push(Buffer.from(chunk));
       const receipt = await createDraftReceipt(member, Buffer.concat(chunks), "image/jpeg");
-      const note = receipt.lowConfidence ? `（${receipt.lowConfidence}行は自信がないので確認してください）` : "";
-      await reply(event.replyToken, `${receipt.lineCount}行を読み取りました${note}。\n確認して登録：${liffUrl(`/receipts/${receipt.id}`)}`, event.source.groupId);
+      // レシートでも冷蔵庫でもない写真には反応しない（夫婦の普通の写真のやりとりを邪魔しない）
+      if (!receipt) return;
+      const note = receipt.lowConfidence ? `（${receipt.lowConfidence}件は自信がないので確認してください）` : "";
+      const msg =
+        receipt.kind === "fridge"
+          ? `冷蔵庫の写真から${receipt.lineCount}品を見つけました${note}。\n今ある物を選んで登録：${liffUrl(`/receipts/${receipt.id}`)}`
+          : `${receipt.lineCount}行を読み取りました${note}。\n確認して登録：${liffUrl(`/receipts/${receipt.id}`)}`;
+      await reply(event.replyToken, msg, event.source.groupId);
       return;
     }
 

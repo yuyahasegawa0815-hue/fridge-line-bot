@@ -85,16 +85,16 @@ export async function applyNoticeAction(householdId: string, itemId: string, act
     .eq("id", itemId)
     .eq("household_id", householdId)
     .maybeSingle();
-  if (!item) return "その食材が見つかりませんでした。";
-  if (item.status !== "active") return `${item.name}はもう記録済みです。`;
+  if (!item) return "あれ、その食材が見つからなかったよ🤔";
+  if (item.status !== "active") return `${item.name}はもう記録してあるよ👌`;
   if (action === "discard") {
     await updateRemaining(householdId, itemId, 0, true);
     const loss = lossYen(item.price_yen, item.remaining_pct);
-    return `${item.name}を「捨てた」で記録しました${loss ? `（ロス ${loss.toLocaleString()}円）` : ""}。`;
+    return `${item.name}は「捨てた」で記録したよ${loss ? `（ロス ${loss.toLocaleString()}円）` : ""}。次はおいしく食べきろうね🍀`;
   }
   const next = action === "used_up" ? 0 : stepDown(item.remaining_pct);
   await updateRemaining(householdId, itemId, next);
-  return next === 0 ? `${item.name}を使い切りにしました。` : `${item.name}の残りを${next}%にしました。`;
+  return next === 0 ? `${item.name}、使い切ったね！ナイス👏` : `${item.name}の残りを${next}%にしたよ📝`;
 }
 
 // 期限通知の対象になりうる在庫（期限まで3日以内）を世帯ごとに返す。

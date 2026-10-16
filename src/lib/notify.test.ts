@@ -37,5 +37,5 @@ test("通知は10件までで、残りは件数を書く", () => {
   const msg = buildNotice(many, today, "morning", "https://liff.line.me/x/inventory");
   const bubble = msg.contents as { body: { contents: unknown[] }; footer: { contents: { text?: string }[] } };
   assert.equal(bubble.body.contents.length, 10);
-  assert.equal(bubble.footer.contents[0].text, "ほか2件は一覧で確認できます。");
+  assert.equal(bubble.footer.contents[0].text, "ほかに2件あるよ。一覧で見てね👀");
 });

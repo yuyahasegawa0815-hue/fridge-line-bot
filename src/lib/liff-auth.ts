@@ -9,4 +9,4 @@ export async function memberFromRequest(req: Request): Promise<Member | null> {
   return lineUserId ? memberByLineUser(lineUserId) : null;
 }
 
-export const unauthorized = () => Response.json({ error: "LINEグループのメンバーとして確認できませんでした" }, { status: 401 });
+export const unauthorized = () => Response.json({ error: "まだあなたのことを知らないみたい🙈 Fridgy のいるグループで一度なにか送ってから、もう一度開いてね" }, { status: 401 });

@@ -15,12 +15,8 @@ test("日本時間で日付を切り替える", () => {
   assert.equal(todayJst(new Date("2026-10-14T14:59:00Z")), "2026-10-14");
 });
 
-test("朝は3日以内と期限切れを、期限が早い順に選ぶ", () => {
-  assert.deepEqual(selectDue(items, today, "morning").map((i) => i.id), ["d", "a", "c"]);
-});
-
-test("夕方は明日までのものだけ", () => {
-  assert.deepEqual(selectDue(items, today, "evening").map((i) => i.id), ["d", "a"]);
+test("期限が今日の物だけを選ぶ（明日以降も、過ぎた物も送らない）", () => {
+  assert.deepEqual(selectDue([...items, { id: "e", name: "納豆", expires_on: today, remaining_pct: 100 }], today).map((i) => i.id), ["e"]);
 });
 
 test("ボタンの内容を往復できる", () => {
@@ -34,7 +30,7 @@ test("減ったは1段階ずつ減らす", () => {
 
 test("通知は10件までで、残りは件数を書く", () => {
   const many = Array.from({ length: 12 }, (_, i) => ({ id: `${i}`, name: `食材${i}`, expires_on: today, remaining_pct: 100 }));
-  const msg = buildNotice(many, today, "morning", "https://liff.line.me/x/inventory");
+  const msg = buildNotice(many, today, "https://liff.line.me/x/inventory");
   const bubble = msg.contents as { body: { contents: unknown[] }; footer: { contents: { text?: string }[] } };
   assert.equal(bubble.body.contents.length, 10);
   assert.equal(bubble.footer.contents[0].text, "ほかに2件あるよ。一覧で見てね👀");

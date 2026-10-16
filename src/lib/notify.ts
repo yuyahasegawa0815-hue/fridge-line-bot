@@ -1,7 +1,5 @@
 import type { messagingApi } from "@line/bot-sdk";
 
-export type Slot = "morning" | "evening";
-
 export interface DueItem {
   id: string;
   name: string;
@@ -20,12 +18,9 @@ export function daysUntil(date: string, today: string): number {
   return Math.round((Date.parse(date) - Date.parse(today)) / DAY);
 }
 
-// 朝は期限まで3日以内（過ぎたものも含む）、夕方は今日・明日までのものを通知する。
-export function selectDue<T extends DueItem>(items: T[], today: string, slot: Slot): T[] {
-  const limit = slot === "morning" ? 3 : 1;
-  return items
-    .filter((i) => daysUntil(i.expires_on, today) <= limit)
-    .sort((a, b) => a.expires_on.localeCompare(b.expires_on));
+// 通知は夕方1回、期限が今日の物だけ（LINE の無料通数を節約するため）。
+export function selectDue<T extends DueItem>(items: T[], today: string): T[] {
+  return items.filter((i) => daysUntil(i.expires_on, today) === 0);
 }
 
 export function dueLabel(days: number): string {
@@ -57,9 +52,9 @@ export function stepDown(pct: number): 0 | 25 | 50 {
 
 const MAX_ITEMS = 10;
 
-export function buildNotice(items: DueItem[], today: string, slot: Slot, listUrl: string): messagingApi.FlexMessage {
+export function buildNotice(items: DueItem[], today: string, listUrl: string): messagingApi.FlexMessage {
   const shown = items.slice(0, MAX_ITEMS);
-  const title = slot === "morning" ? "☀️ おはよう！期限が近い食材があるよ" : "🌙 今夜のうちに使ってほしいな";
+  const title = "🌙 今日が期限の食材があるよ！今夜使ってね";
   const rows: messagingApi.FlexComponent[] = shown.flatMap((item, i) => {
     const left = item.remaining_pct < 100 ? `（残り${item.remaining_pct}%）` : "";
     const button = (label: string, action: ItemAction): messagingApi.FlexButton => ({

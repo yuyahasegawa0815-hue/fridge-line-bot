@@ -59,7 +59,7 @@ const MAX_ITEMS = 10;
 
 export function buildNotice(items: DueItem[], today: string, slot: Slot, listUrl: string): messagingApi.FlexMessage {
   const shown = items.slice(0, MAX_ITEMS);
-  const title = slot === "morning" ? "期限が近い食材があります" : "今夜のうちに使いたい食材";
+  const title = slot === "morning" ? "☀️ おはよう！期限が近い食材があるよ" : "🌙 今夜のうちに使ってほしいな";
   const rows: messagingApi.FlexComponent[] = shown.flatMap((item, i) => {
     const left = item.remaining_pct < 100 ? `（残り${item.remaining_pct}%）` : "";
     const button = (label: string, action: ItemAction): messagingApi.FlexButton => ({
@@ -88,7 +88,7 @@ export function buildNotice(items: DueItem[], today: string, slot: Slot, listUrl
     };
     return [row];
   });
-  const more = items.length > MAX_ITEMS ? `ほか${items.length - MAX_ITEMS}件は一覧で確認できます。` : "";
+  const more = items.length > MAX_ITEMS ? `ほかに${items.length - MAX_ITEMS}件あるよ。一覧で見てね👀` : "";
   return {
     type: "flex",
     altText: `${title}：${shown.map((i) => i.name).join("、")}`,
@@ -102,7 +102,7 @@ export function buildNotice(items: DueItem[], today: string, slot: Slot, listUrl
         spacing: "sm",
         contents: [
           ...(more ? [{ type: "text", text: more, size: "xs", color: "#656d76", wrap: true } as messagingApi.FlexText] : []),
-          { type: "button", style: "link", height: "sm", action: { type: "uri", label: "一覧を開く", uri: listUrl } },
+          { type: "button", style: "link", height: "sm", action: { type: "uri", label: "冷蔵庫の中身を見る", uri: listUrl } },
         ],
       },
     },

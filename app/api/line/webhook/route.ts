@@ -19,38 +19,47 @@ export const maxDuration = 60;
 const STORAGE_LABEL = { fridge: "冷蔵", freezer: "冷凍", pantry: "常温" } as const;
 
 // 画面へのリンクは実行時の LIFF ID から作る。
-const help = () => `Fridgy の使い方
+const help = () => `📖 僕の使い方だよ
 
-【登録する】
-・レシートの写真をこのグループに送る
-　→ 読み取り結果の確認画面が届くので、直して「在庫に登録」
-・冷蔵庫の中の写真を送る
-　→ 見つかった食材の一覧が届くので、今ある物を選んで登録（写りきらなかった物も足せます）
-・追加 品名 金額：手で登録（例：追加 牛乳 198）
-・すでに冷蔵庫にある物や、レシートを忘れた物はまとめて登録できます
+【覚えてもらう】
+📸 レシートの写真を送ってね
+　→ 読み取った内容を確認する画面を送るよ
+🧊 冷蔵庫の中の写真もOK
+　→ 見つけた食材から、今ある物を選んでね（写らなかった物も足せるよ）
+✏️ 手で入れるときは「追加 牛乳 198」
+　まとめて入れるなら1行に1つずつ👇
 　追加
 　キャベツ 半分 3日前
 　豚こま 400 冷凍
 　卵
-　（1行に1つ。金額・残量（たっぷり/半分/少し）・冷蔵/冷凍/常温・○日前 は省略できます）
-・在庫の画面の「食材を追加」からも登録できます
-　${liffUrl("/inventory")}
+　（金額・残量（たっぷり/半分/少し）・冷蔵/冷凍/常温・○日前 は省略OK）
+　画面からも入れられるよ：${liffUrl("/inventory")}
 
 【見る・記録する】
-・在庫：冷蔵庫の中身と、残量や期限を直す画面
+🥬「在庫」で冷蔵庫の中身を見せるね
 　${liffUrl("/inventory")}
-・朝8時と夕方5時に、期限が近い食材をお知らせ
-　→「減った」「使い切った」「捨てた」ボタンで記録
+⏰ 期限が近い物は朝8時と夕方5時にお知らせするよ
+　→「減った」「使い切った」「捨てた」ボタンで教えてね
 
-【献立と買い物】
-・献立 または レシピ：在庫から今日の献立を3品（例：レシピ 和食で）
-・買い物：買い物リスト
+【ごはんと買い物】
+🍳「レシピ」（「献立」でもOK）で、今ある物から3品考えるよ
+　例：レシピ 和食で／レシピ 15分で
+🛒「買い物」で買い物リスト
 　${liffUrl("/shopping")}
-・買う 品名：リストに追加（例：買う 牛乳 卵）
+➕「買う 牛乳 卵」でリストに追加
 
-【食費】
-・食費：今月の食費と廃棄額（毎月1日に先月分も届きます）
-　${liffUrl("/report")}`;
+【お金】
+💰「食費」で今月の食費と、捨てちゃった金額を出すよ（毎月1日には先月分も届くよ）
+　${liffUrl("/report")}
+
+困ったら、いつでも「使い方」って送ってね😊`;
+
+const GREETING = `はじめまして！冷蔵庫の見張り番、Fridgy（フリッジー）だよ🧊✨
+
+このグループの冷蔵庫の中身を覚えておいて、
+「あれ、まだあったっけ？」や「気づいたら期限切れ…」を減らすお手伝いをするね。
+
+これからよろしくね😊`;
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -76,10 +85,16 @@ async function reply(token: string | undefined, content: string | messagingApi.M
   }
 }
 
+// 参加したときの挨拶のように、吹き出しを分けて送る（返信は最大5つまで無料でまとめて送れる）。
+async function replyMany(token: string | undefined, texts: string[]) {
+  if (!token) return;
+  await lineApi().replyMessage({ replyToken: token, messages: texts.map((text) => ({ type: "text" as const, text })) });
+}
+
 async function handleEvent(event: webhook.Event) {
   try {
     if (event.type === "join") {
-      await reply(event.replyToken, "Fridgy（フリッジー）です。冷蔵庫の管理を始めます。レシートの写真をこのグループに送ると、在庫に登録します。\n「使い方」と送ると、できることの一覧が出ます。");
+      await replyMany(event.replyToken, [GREETING, help()]);
       return;
     }
     if (event.source?.type !== "group" || !event.source.userId) return;
@@ -89,7 +104,7 @@ async function handleEvent(event: webhook.Event) {
       if (shop) {
         const member = await ensureMember(event.source.groupId, event.source.userId);
         const added = await addShopping(member.household_id, shop, "献立");
-        return reply(event.replyToken, added.length ? `買い物リストに追加しました：${added.join("、")}` : "もうリストに入っています。");
+        return reply(event.replyToken, added.length ? `🛒 買い物リストに入れたよ！\n${added.map((n) => `・${n}`).join("\n")}` : "それはもうリストに入ってるよ👌");
       }
       const parsed = decodeAction(event.postback.data);
       if (!parsed) return;
@@ -108,11 +123,11 @@ async function handleEvent(event: webhook.Event) {
       const receipt = await createDraftReceipt(member, Buffer.concat(chunks), "image/jpeg");
       // レシートでも冷蔵庫でもない写真には反応しない（夫婦の普通の写真のやりとりを邪魔しない）
       if (!receipt) return;
-      const note = receipt.lowConfidence ? `（${receipt.lowConfidence}件は自信がないので確認してください）` : "";
+      const note = receipt.lowConfidence ? `\n（${receipt.lowConfidence}件はちょっと自信がないから、確認してね🙏）` : "";
       const msg =
         receipt.kind === "fridge"
-          ? `冷蔵庫の写真から${receipt.lineCount}品を見つけました${note}。\n今ある物を選んで登録：${liffUrl(`/receipts/${receipt.id}`)}`
-          : `${receipt.lineCount}行を読み取りました${note}。\n確認して登録：${liffUrl(`/receipts/${receipt.id}`)}`;
+          ? `🧊 冷蔵庫の中から${receipt.lineCount}品見つけたよ！${note}\n今ある物にチェックして登録してね👇\n${liffUrl(`/receipts/${receipt.id}`)}`
+          : `📸 レシートを読んだよ！${receipt.lineCount}行あったよ${note}\n合ってるか見て、登録してね👇\n${liffUrl(`/receipts/${receipt.id}`)}`;
       await reply(event.replyToken, msg, event.source.groupId);
       return;
     }
@@ -122,12 +137,12 @@ async function handleEvent(event: webhook.Event) {
 
     if (text === "在庫") {
       const items = await listActive(member.household_id);
-      if (!items.length) return reply(event.replyToken, "在庫は空です。");
+      if (!items.length) return reply(event.replyToken, "冷蔵庫はまだ空っぽだよ🫙\nレシートか冷蔵庫の写真を送ってくれたら覚えるね📸");
       const lines = items.slice(0, 30).map((i) => {
         const left = i.remaining_pct < 100 ? `（残り${i.remaining_pct}%）` : "";
         return `・${i.name}${left} ${STORAGE_LABEL[i.storage as keyof typeof STORAGE_LABEL]} ${i.expires_on ? `〜${i.expires_on.slice(5).replace("-", "/")}` : ""}`;
       });
-      return reply(event.replyToken, `在庫 ${items.length}件\n${lines.join("\n")}\n\n編集：${liffUrl("/inventory")}`);
+      return reply(event.replyToken, `🥬 今の冷蔵庫の中身だよ（${items.length}件）\n${lines.join("\n")}\n\n残量や期限を直すときはこちら👇\n${liffUrl("/inventory")}`);
     }
 
     if (/^(使い方|ヘルプ|help|[?？])/i.test(text)) return reply(event.replyToken, help());
@@ -135,7 +150,7 @@ async function handleEvent(event: webhook.Event) {
     const menu = text.match(/^(?:献立|レシピ)(?:\s+(.+))?$/s);
     if (menu) {
       const items = await listActive(member.household_id);
-      if (!items.length) return reply(event.replyToken, "在庫が空なので献立を考えられません。レシートの写真を送るか「追加 品名」で登録してください。");
+      if (!items.length) return reply(event.replyToken, "冷蔵庫が空っぽで、献立が考えられないよ😢\nレシートか冷蔵庫の写真を送るか、「追加 品名」で教えてね！");
       const today = todayJst();
       const recipes = await suggestRecipes(
         items.map((i) => ({ name: i.name, daysLeft: i.expires_on ? daysUntil(i.expires_on, today) : null, remainingPct: i.remaining_pct })),
@@ -151,21 +166,21 @@ async function handleEvent(event: webhook.Event) {
 
     if (text === "買い物" || text === "買い物リスト") {
       const list = await listShopping(member.household_id);
-      const body = list.length ? list.map((i) => `・${i.name}`).join("\n") : "リストは空です。";
-      return reply(event.replyToken, `買い物リスト ${list.length}件\n${body}\n\n開く：${liffUrl("/shopping")}`);
+      const body = list.length ? list.map((i) => `・${i.name}`).join("\n") : "今は買う物なしだよ✨";
+      return reply(event.replyToken, `🛒 買い物リスト（${list.length}件）\n${body}\n\nチェックや追加はこちら👇\n${liffUrl("/shopping")}`);
     }
 
     const buy = text.match(/^買う\s+(.+)$/s);
     if (buy) {
       const added = await addShopping(member.household_id, buy[1].split(/[、,\s]+/).map((n) => n.slice(0, 40)), null);
-      return reply(event.replyToken, added.length ? `買い物リストに追加しました：${added.join("、")}` : "もうリストに入っています。");
+      return reply(event.replyToken, added.length ? `🛒 買い物リストに入れたよ！\n${added.map((n) => `・${n}`).join("\n")}` : "それはもうリストに入ってるよ👌");
     }
 
     const add = text.match(/^追加(?:\s+([\s\S]*))?$/);
     if (add) {
       const entries = parseAddLines(add[1] ?? "");
       if (!entries.length) {
-        return reply(event.replyToken, `「追加」のあとに品名を書いてください。\n例：追加 牛乳 198\n\n複数あるときは1行に1つ：\n追加\nキャベツ 半分 3日前\n豚こま 400 冷凍\n\n画面から登録：${liffUrl("/inventory")}`);
+        return reply(event.replyToken, `「追加」のあとに品名を書いてね✏️\n例：追加 牛乳 198\n\nいくつかあるときは1行に1つずつ👇\n追加\nキャベツ 半分 3日前\n豚こま 400 冷凍\n\n画面からも入れられるよ：${liffUrl("/inventory")}`);
       }
       const today = todayJst();
       const unknown: string[] = [];
@@ -174,12 +189,12 @@ async function handleEvent(event: webhook.Event) {
         const { matched } = await addManual(member, { ...e, purchasedOn });
         if (!matched) unknown.push(e.name);
       }
-      const names = entries.map((e) => e.name).join("、");
-      const note = unknown.length ? `\n\n${unknown.join("、")}は期限の目安が分からないので、一覧画面で期限を入れてください：${liffUrl("/inventory")}` : "";
-      return reply(event.replyToken, `${entries.length}件を在庫に追加しました：${names}${note}`);
+      const names = entries.map((e) => `・${e.name}`).join("\n");
+      const note = unknown.length ? `\n\n${unknown.join("、")}は期限の目安がわからなかったよ🤔 よかったら期限を入れてね👇\n${liffUrl("/inventory")}` : "";
+      return reply(event.replyToken, `✅ ${entries.length}件覚えたよ！\n${names}${note}`);
     }
   } catch (err) {
     console.error(err);
-    if ("replyToken" in event) await reply(event.replyToken, "うまく処理できませんでした。少し時間をおいてもう一度送ってください。").catch(() => {});
+    if ("replyToken" in event) await reply(event.replyToken, "ごめんね、うまくできなかったよ💦\n少し時間をおいて、もう一度送ってみてね🙏").catch(() => {});
   }
 }

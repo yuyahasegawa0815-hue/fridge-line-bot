@@ -60,10 +60,10 @@ export function buildRecipes(recipes: Recipe[], shoppingUrl: string): messagingA
               style: "primary",
               color: "#06c755",
               height: "sm",
-              action: { type: "postback", label: "買い足す物をリストへ", data: encodeShop(r.missing), displayText: `${r.title}の材料を買い物リストへ` },
+              action: { type: "postback", label: "足りない物をリストへ", data: encodeShop(r.missing), displayText: `${r.title}の材料を買い物リストへ` },
             },
           ]
-        : [text("在庫だけで作れます", { size: "xs", color: "#656d76", align: "center" })],
+        : [text("今ある物だけで作れるよ✨", { size: "xs", color: "#656d76", align: "center" })],
     },
   }));
   bubbles.push({
@@ -73,7 +73,7 @@ export function buildRecipes(recipes: Recipe[], shoppingUrl: string): messagingA
       type: "box",
       layout: "vertical",
       justifyContent: "center",
-      contents: [text("買い物リストは「買い物」でいつでも見られます。", { color: "#656d76" })],
+      contents: [text("足りない物は買い物リストに入れておくね🛒「買い物」でいつでも見られるよ。", { color: "#656d76" })],
     },
     footer: {
       type: "box",
@@ -83,7 +83,7 @@ export function buildRecipes(recipes: Recipe[], shoppingUrl: string): messagingA
   });
   return {
     type: "flex",
-    altText: `今日の献立：${recipes.map((r) => r.title).join("、")}`,
+    altText: `🍳 今日はこんなのどう？${recipes.map((r) => r.title).join("、")}`,
     contents: { type: "carousel", contents: bubbles },
   };
 }

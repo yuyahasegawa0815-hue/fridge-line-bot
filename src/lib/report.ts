@@ -68,12 +68,14 @@ function diff(now: number, prev: number): string {
 export function reportText(cur: MonthReport, prev: MonthReport | null, title: string, url: string): string {
   const [, m] = cur.month.split("-");
   const lines = [
-    `${title}（${Number(m)}月）`,
-    `食費：${yen(cur.spendYen)}${prev ? diff(cur.spendYen, prev.spendYen) : ""}`,
-    `廃棄：${yen(cur.wasteYen)}${cur.spendYen ? `（食費の${Math.round(cur.wasteRate * 100)}%）` : ""}${prev ? diff(cur.wasteYen, prev.wasteYen) : ""}`,
+    `📊 ${title}（${Number(m)}月）だよ`,
+    "",
+    `💰 食費：${yen(cur.spendYen)}${prev ? diff(cur.spendYen, prev.spendYen) : ""}`,
+    `🗑️ 廃棄：${yen(cur.wasteYen)}${cur.spendYen ? `（食費の${Math.round(cur.wasteRate * 100)}%）` : ""}${prev ? diff(cur.wasteYen, prev.wasteYen) : ""}`,
   ];
-  if (cur.wasted.length) lines.push(`捨てた物：${cur.wasted.slice(0, 5).map((w) => w.name).join("、")}${cur.wasted.length > 5 ? " ほか" : ""}`);
-  if (cur.unpricedCount) lines.push(`※金額が入っていない食材が${cur.unpricedCount}件あります`);
-  lines.push("", `くわしく：${url}`);
+  if (cur.wasted.length) lines.push(`捨てちゃった物：${cur.wasted.slice(0, 5).map((w) => w.name).join("、")}${cur.wasted.length > 5 ? " ほか" : ""}`);
+  else if (cur.spendYen) lines.push("捨てた物ゼロ！すごい🎉");
+  if (cur.unpricedCount) lines.push(`※金額が入っていない食材が${cur.unpricedCount}件あるよ`);
+  lines.push("", `くわしくはこちら👇\n${url}`);
   return lines.join("\n");
 }

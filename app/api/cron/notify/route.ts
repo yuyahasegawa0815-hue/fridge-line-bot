@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     const due = selectDue(household.items, today, slot as Slot);
     if (!due.length) continue; // 対象がない回は送らない（無料通数の節約）
     try {
-      await lineApi().pushMessage({ to: household.lineGroupId, messages: [buildNotice(due, today, slot as Slot, liffUrl("/inventory"))] });
+      await lineApi().pushMessage({ to: household.lineGroupId, messages: [buildNotice(due, today, slot as Slot, liffUrl("/inventory", household.id))] });
       sent++;
     } catch (err) {
       console.error("通知の送信に失敗", household.lineGroupId, err);
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     for (const household of await householdsWithActivity(last)) {
       try {
         const [cur, prev] = await monthlyReports(household.id, last, 2);
-        await lineApi().pushMessage({ to: household.lineGroupId, messages: [{ type: "text", text: reportText(cur, prev, "先月の食費", liffUrl("/report")) }] });
+        await lineApi().pushMessage({ to: household.lineGroupId, messages: [{ type: "text", text: reportText(cur, prev, "先月の食費", liffUrl("/report", household.id)) }] });
         reports++;
       } catch (err) {
         console.error("月次レポートの送信に失敗", household.lineGroupId, err);

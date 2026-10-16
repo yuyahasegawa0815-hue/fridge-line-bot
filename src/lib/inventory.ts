@@ -97,15 +97,13 @@ export async function applyNoticeAction(householdId: string, itemId: string, act
   return next === 0 ? `${item.name}、使い切ったね！ナイス👏` : `${item.name}の残りを${next}%にしたよ📝`;
 }
 
-// 期限通知の対象になりうる在庫（期限まで3日以内）を世帯ごとに返す。
+// 期限が今日の在庫を世帯ごとに返す。
 export async function dueItemsByHousehold(today: string) {
-  const limit = new Date(Date.parse(today) + 3 * 86_400_000).toISOString().slice(0, 10);
   const { data, error } = await db()
     .from("inventory_items")
     .select("id, name, expires_on, remaining_pct, households(id, line_group_id)")
     .eq("status", "active")
-    .not("expires_on", "is", null)
-    .lte("expires_on", limit);
+    .eq("expires_on", today);
   if (error) throw error;
   const groups = new Map<string, { id: string; lineGroupId: string; items: DueItem[] }>();
   for (const row of data as unknown as (DueItem & { households: { id: string; line_group_id: string } })[]) {

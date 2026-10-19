@@ -92,7 +92,7 @@ export function buildNotice(items: DueItem[], today: string, listUrl: string, la
     altText: `${title}${lang === "ja" ? "：" : ": "}${msg.join(shown.map((i) => i.name))}`,
     contents: {
       type: "bubble",
-      header: { type: "box", layout: "vertical", contents: [{ type: "text", text: title, weight: "bold", size: "md" }] },
+      header: { type: "box", layout: "vertical", contents: [{ type: "text", text: title, weight: "bold", size: "md", wrap: true }] },
       body: { type: "box", layout: "vertical", contents: rows },
       footer: {
         type: "box",

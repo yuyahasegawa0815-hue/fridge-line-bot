@@ -1,12 +1,14 @@
 "use client";
 import { use, useEffect, useState } from "react";
 import { api, closeWindow } from "@/src/lib/liff-client";
+import { useUi, type Ui } from "@/src/lib/ui-text";
 
 type Storage = "fridge" | "freezer" | "pantry";
 interface Line {
   id?: string;
   raw_text: string;
   food_name: string | null;
+  food_master_id?: number | null;
   is_food: boolean;
   quantity: number;
   price_yen: number | null;
@@ -26,6 +28,7 @@ interface Receipt {
 
 export default function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const ui = useUi();
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
   const [date, setDate] = useState("");
@@ -54,6 +57,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
           .filter((l) => (l.food_name ?? l.raw_text).trim())
           .map((l) => ({
             food_name: (l.food_name ?? l.raw_text).trim(),
+            food_master_id: l.food_master_id ?? null,
             is_food: l.is_food,
             quantity: l.quantity,
             price_yen: l.price_yen,
@@ -69,63 +73,51 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
   }
 
   if (error && !receipt) return <main className="error">{error}</main>;
-  if (!receipt) return <main className="muted">読み込み中…</main>;
-  if (receipt.status === "confirmed") return <main>このレシートは登録済みです。</main>;
-  if (done !== null) return <main>{done}件を在庫に登録しました。</main>;
-  if (receipt.kind === "fridge") return <FridgeScan id={id} receipt={receipt} onDone={setDone} />;
+  if (!receipt) return <main className="muted">{ui.loading}</main>;
+  if (receipt.status === "confirmed") return <main>{ui.receiptDone}</main>;
+  if (done !== null) return <main>{ui.registered(done)}</main>;
+  if (receipt.kind === "fridge") return <FridgeScan ui={ui} id={id} receipt={receipt} onDone={setDone} />;
 
   return (
     <main>
-      <h1>{receipt.store_name ?? "レシート"}の確認</h1>
-      <p className="muted">
-        黄色の行は読み取りに自信がありません。品名と金額を直し、食材でない行は「対象外」にしてください。
-      </p>
+      <h1>{ui.receiptTitle(receipt.store_name)}</h1>
+      <p className="muted">{ui.receiptHint}</p>
       <div className="fields" style={{ marginBottom: 12 }}>
-        購入日 <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        {ui.purchaseDate} <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </div>
       {lines.map((l, i) => (
         <div key={i} className={`row ${l.confidence < 0.7 ? "low" : ""} ${l.is_food ? "" : "off"}`}>
-          <span className="muted">印字：{l.raw_text}</span>
+          <span className="muted">{ui.printed(l.raw_text)}</span>
           <div className="fields">
-            <input className="name" value={l.food_name ?? ""} placeholder="品名" onChange={(e) => update(i, { food_name: e.target.value })} />
-            <input className="num" type="number" inputMode="numeric" value={l.price_yen ?? ""} placeholder="円"
+            <input className="name" value={l.food_name ?? ""} placeholder={ui.itemName} onChange={(e) => update(i, { food_name: e.target.value, food_master_id: null })} />
+            <input className="num" type="number" inputMode="numeric" value={l.price_yen ?? ""} placeholder={ui.yenUnit}
               onChange={(e) => update(i, { price_yen: e.target.value === "" ? null : Number(e.target.value) })} />
           </div>
           <div className="fields">
             <select value={l.storage ?? "fridge"} onChange={(e) => update(i, { storage: e.target.value as Storage })}>
-              <option value="fridge">冷蔵</option>
-              <option value="freezer">冷凍</option>
-              <option value="pantry">常温</option>
+              <option value="fridge">{ui.storage.fridge}</option>
+              <option value="freezer">{ui.storage.freezer}</option>
+              <option value="pantry">{ui.storage.pantry}</option>
             </select>
-            <button onClick={() => update(i, { is_food: !l.is_food })}>{l.is_food ? "対象外にする" : "食材に戻す"}</button>
-            <button onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>削除</button>
+            <button onClick={() => update(i, { is_food: !l.is_food })}>{l.is_food ? ui.exclude : ui.include}</button>
+            <button onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>{ui.delete}</button>
           </div>
         </div>
       ))}
-      <button onClick={() => setLines((ls) => [...ls, { raw_text: "（手入力）", food_name: "", is_food: true, quantity: 1, price_yen: null, confidence: 1, storage: "fridge" }])}>
-        ＋ 行を追加
+      <button onClick={() => setLines((ls) => [...ls, { raw_text: ui.manualRow, food_name: "", is_food: true, quantity: 1, price_yen: null, confidence: 1, storage: "fridge" }])}>
+        {ui.addRow}
       </button>
       <p className="muted">
-        合計 {sum.toLocaleString()}円{receipt.total_yen != null && ` ／ レシートの合計 ${receipt.total_yen.toLocaleString()}円`}
+        {ui.total(ui.yen(sum), receipt.total_yen != null ? ui.yen(receipt.total_yen) : null)}
       </p>
       {error && <p className="error">{error}</p>}
-      <button className="primary" onClick={submit}>在庫に登録</button>
+      <button className="primary" onClick={submit}>{ui.register}</button>
     </main>
   );
 }
 
-const AGO = [
-  { label: "今日", days: 0 },
-  { label: "昨日", days: 1 },
-  { label: "3日前", days: 3 },
-  { label: "1週間前", days: 7 },
-  { label: "2週間前", days: 14 },
-];
-const LEVELS = [
-  { pct: 100, label: "たっぷり" },
-  { pct: 50, label: "半分" },
-  { pct: 25, label: "少し" },
-] as const;
+const AGO = [0, 1, 3, 7, 14];
+const LEVELS = [100, 50, 25] as const;
 
 function daysAgo(n: number) {
   return new Date(Date.now() + 9 * 3_600_000 - n * 86_400_000).toISOString().slice(0, 10);
@@ -133,6 +125,7 @@ function daysAgo(n: number) {
 
 interface ScanRow {
   name: string;
+  masterId: number | null;
   hint: string;
   storage: Storage;
   remaining: 25 | 50 | 100;
@@ -143,7 +136,7 @@ interface ScanRow {
 }
 
 // 冷蔵庫の写真：見つかった食材から今ある物を選び、写らなかった物は手で足して登録する。
-function FridgeScan({ id, receipt, onDone }: { id: string; receipt: Receipt; onDone: (n: number) => void }) {
+function FridgeScan({ ui, id, receipt, onDone }: { ui: Ui; id: string; receipt: Receipt; onDone: (n: number) => void }) {
   const stock = new Set(receipt.in_stock);
   const [rows, setRows] = useState<ScanRow[]>(() =>
     receipt.receipt_lines
@@ -153,6 +146,7 @@ function FridgeScan({ id, receipt, onDone }: { id: string; receipt: Receipt; onD
         const inStock = stock.has(name);
         return {
           name,
+          masterId: l.food_master_id ?? null,
           hint: l.raw_text,
           storage: l.storage ?? "fridge",
           remaining: l.remaining_pct ?? 100,
@@ -170,11 +164,11 @@ function FridgeScan({ id, receipt, onDone }: { id: string; receipt: Receipt; onD
 
   const update = (i: number, patch: Partial<ScanRow>) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const addManual = () => {
-    const names = manual.split(/[、,\n]+/).map((n) => n.trim()).filter(Boolean);
+    const names = manual.split(/[、,，\n]+/).map((n) => n.trim()).filter(Boolean);
     if (!names.length) return;
     setRows((rs) => [
       ...rs,
-      ...names.map((name) => ({ name, hint: "手入力", storage: "fridge" as Storage, remaining: 100 as const, ago: 3, checked: true, low: false, inStock: stock.has(name) })),
+      ...names.map((name) => ({ name, masterId: null, hint: "", storage: "fridge" as Storage, remaining: 100 as const, ago: 3, checked: true, low: false, inStock: stock.has(name) })),
     ]);
     setManual("");
   };
@@ -190,6 +184,7 @@ function FridgeScan({ id, receipt, onDone }: { id: string; receipt: Receipt; onD
           .filter((r) => r.name.trim())
           .map((r) => ({
             food_name: r.name.trim(),
+            food_master_id: r.masterId,
             is_food: r.checked,
             quantity: 1,
             price_yen: null,
@@ -210,38 +205,36 @@ function FridgeScan({ id, receipt, onDone }: { id: string; receipt: Receipt; onD
 
   return (
     <main>
-      <h1>冷蔵庫の写真から{rows.length}品</h1>
-      <p className="muted">
-        今ある物にチェックを入れてください。黄色は写真から自信がない物、「在庫にあり」はもう登録済みの物です。買った日はおおよそで大丈夫です（期限の目安に使います）。
-      </p>
+      <h1>{ui.fridgeTitle(rows.length)}</h1>
+      <p className="muted">{ui.fridgeHint}</p>
       {rows.map((r, i) => (
         <div key={i} className={`row ${r.low ? "low" : ""} ${r.checked ? "" : "off"}`}>
           <div className="fields">
             <input type="checkbox" checked={r.checked} onChange={() => update(i, { checked: !r.checked })} style={{ width: 22, height: 22 }} />
-            <input className="name" value={r.name} onChange={(e) => update(i, { name: e.target.value })} />
-            {r.inStock && <span className="muted">在庫にあり</span>}
+            <input className="name" value={r.name} onChange={(e) => update(i, { name: e.target.value, masterId: null })} />
+            {r.inStock && <span className="muted">{ui.inStock}</span>}
           </div>
-          {r.hint !== "手入力" && <span className="muted">写真：{r.hint}</span>}
+          {r.hint && <span className="muted">{ui.photo(r.hint)}</span>}
           {r.checked && (
             <>
               <div className="fields muted">
-                残量
+                {ui.remaining}
                 {LEVELS.map((l) => (
-                  <button key={l.pct} className={r.remaining === l.pct ? "on" : ""} onClick={() => update(i, { remaining: l.pct })}>
-                    {l.label}
+                  <button key={l} className={r.remaining === l ? "on" : ""} onClick={() => update(i, { remaining: l })}>
+                    {ui.levels[l]}
                   </button>
                 ))}
                 <select value={r.storage} onChange={(e) => update(i, { storage: e.target.value as Storage })}>
-                  <option value="fridge">冷蔵</option>
-                  <option value="freezer">冷凍</option>
-                  <option value="pantry">常温</option>
+                  <option value="fridge">{ui.storage.fridge}</option>
+                  <option value="freezer">{ui.storage.freezer}</option>
+                  <option value="pantry">{ui.storage.pantry}</option>
                 </select>
               </div>
               <div className="fields muted">
-                買った日
+                {ui.boughtOn}
                 {AGO.map((a) => (
-                  <button key={a.days} className={r.ago === a.days ? "on" : ""} onClick={() => update(i, { ago: a.days })}>
-                    {a.label}
+                  <button key={a} className={r.ago === a ? "on" : ""} onClick={() => update(i, { ago: a })}>
+                    {ui.ago[a]}
                   </button>
                 ))}
               </div>
@@ -251,17 +244,17 @@ function FridgeScan({ id, receipt, onDone }: { id: string; receipt: Receipt; onD
       ))}
 
       <div className="row">
-        <strong>写っていない物を追加</strong>
+        <strong>{ui.addMissingTitle}</strong>
         <div className="fields">
-          <input className="name" value={manual} onChange={(e) => setManual(e.target.value)} placeholder="例：卵、ヨーグルト" />
-          <button onClick={addManual}>追加</button>
+          <input className="name" value={manual} onChange={(e) => setManual(e.target.value)} placeholder={ui.missingPlaceholder} />
+          <button onClick={addManual}>{ui.add}</button>
         </div>
-        <span className="muted">読点で区切ると、まとめて足せます。</span>
+        <span className="muted">{ui.missingHint}</span>
       </div>
 
       {error && <p className="error">{error}</p>}
       <button className="primary" disabled={busy || !picked.length} onClick={submit}>
-        {busy ? "登録中…" : `${picked.length}件を在庫に登録`}
+        {busy ? ui.registering : ui.registerN(picked.length)}
       </button>
     </main>
   );

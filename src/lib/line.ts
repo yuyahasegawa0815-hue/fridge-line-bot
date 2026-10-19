@@ -14,10 +14,23 @@ export function lineBlob() {
   return blob;
 }
 
-// householdId を付けると、画面がその世帯（グループ／個人トーク）の冷蔵庫を開く。
-export function liffUrl(path: string, householdId?: string) {
-  const h = householdId ? `${path.includes("?") ? "&" : "?"}h=${householdId}` : "";
-  return `https://liff.line.me/${env.liffId()}${path}${h}`;
+// householdId を付けると、画面がその世帯（グループ／個人トーク）の冷蔵庫を開く。lang は画面の言葉。
+export function liffUrl(path: string, householdId?: string, lang?: string) {
+  const params = new URLSearchParams();
+  if (householdId) params.set("h", householdId);
+  if (lang && lang !== "ja") params.set("l", lang);
+  const q = params.size ? `${path.includes("?") ? "&" : "?"}${params}` : "";
+  return `https://liff.line.me/${env.liffId()}${path}${q}`;
+}
+
+// 友だちの LINE アプリの言語設定（例：en, zh-Hant）。友だちでない人やわからないときは null。
+export async function profileLanguage(userId: string): Promise<string | null> {
+  try {
+    const profile = await lineApi().getProfile(userId);
+    return profile.language ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // LIFF から送られた ID トークンを LINE に検証させ、LINE ユーザーIDを返す。

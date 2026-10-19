@@ -1,4 +1,6 @@
 import { lossYen } from "./expiry.ts";
+import { formatYen, type Lang } from "./i18n.ts";
+import { t } from "./messages.ts";
 
 export interface CostItem {
   name: string;
@@ -57,25 +59,26 @@ export function monthReport(items: CostItem[], month: string): MonthReport {
   };
 }
 
-const yen = (n: number) => `${n.toLocaleString("ja-JP")}円`;
-
-function diff(now: number, prev: number): string {
+function diff(now: number, prev: number, lang: Lang): string {
   if (!prev) return "";
   const d = now - prev;
-  return d === 0 ? "（先月と同じ）" : `（先月より${d > 0 ? "+" : "−"}${yen(Math.abs(d))}）`;
+  const msg = t(lang);
+  return d === 0 ? msg.sameAsLast : msg.vsLast(d > 0 ? "+" : "−", formatYen(Math.abs(d), lang));
 }
 
-export function reportText(cur: MonthReport, prev: MonthReport | null, title: string, url: string): string {
+export function reportText(cur: MonthReport, prev: MonthReport | null, title: string, url: string, lang: Lang = "ja"): string {
+  const msg = t(lang);
+  const yen = (n: number) => formatYen(n, lang);
   const [, m] = cur.month.split("-");
   const lines = [
-    `📊 ${title}（${Number(m)}月）だよ`,
+    msg.reportHeader(title, Number(m)),
     "",
-    `💰 食費：${yen(cur.spendYen)}${prev ? diff(cur.spendYen, prev.spendYen) : ""}`,
-    `🗑️ 廃棄：${yen(cur.wasteYen)}${cur.spendYen ? `（食費の${Math.round(cur.wasteRate * 100)}%）` : ""}${prev ? diff(cur.wasteYen, prev.wasteYen) : ""}`,
+    `${msg.spend}${yen(cur.spendYen)}${prev ? diff(cur.spendYen, prev.spendYen, lang) : ""}`,
+    `${msg.waste}${yen(cur.wasteYen)}${cur.spendYen ? msg.ofSpend(Math.round(cur.wasteRate * 100)) : ""}${prev ? diff(cur.wasteYen, prev.wasteYen, lang) : ""}`,
   ];
-  if (cur.wasted.length) lines.push(`捨てちゃった物：${cur.wasted.slice(0, 5).map((w) => w.name).join("、")}${cur.wasted.length > 5 ? " ほか" : ""}`);
-  else if (cur.spendYen) lines.push("捨てた物ゼロ！すごい🎉");
-  if (cur.unpricedCount) lines.push(`※金額が入っていない食材が${cur.unpricedCount}件あるよ`);
-  lines.push("", `くわしくはこちら👇\n${url}`);
+  if (cur.wasted.length) lines.push(msg.wastedItems(msg.join(cur.wasted.slice(0, 5).map((w) => w.name)), cur.wasted.length > 5));
+  else if (cur.spendYen) lines.push(msg.zeroWaste);
+  if (cur.unpricedCount) lines.push(msg.unpriced(cur.unpricedCount));
+  lines.push("", msg.details(url));
   return lines.join("\n");
 }

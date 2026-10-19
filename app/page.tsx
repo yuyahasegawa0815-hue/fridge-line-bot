@@ -15,5 +15,5 @@ export default function Home() {
       })
       .catch((e: Error) => setError(e.message));
   }, []);
-  return <main style={{ padding: 24 }}>{error ? `エラー：${error}` : "読み込み中…"}</main>;
+  return <main style={{ padding: 24 }}>{error ? `Error: ${error}` : "…"}</main>;
 }

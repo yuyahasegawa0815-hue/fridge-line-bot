@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
+import { LANG_FOR_AI, type Lang } from "./i18n";
 
 const storage = z.enum(["fridge", "freezer", "pantry"]);
 
@@ -15,8 +16,9 @@ export const ReceiptSchema = z.object({
     z.object({
       raw_text: z.string().describe("レシートは印字された品名そのまま。冷蔵庫の写真は見えた物の短い説明（例：青いパックの牛乳）"),
       is_food: z.boolean().describe("食材・飲料なら true。日用品・袋・ポイントなどは false"),
-      food_name: z.string().nullable().describe("一般的な食材名に正規化（例：ﾄﾘﾑﾈ → 鶏むね肉）"),
-      master_name: z.string().nullable().describe("食材マスタに該当があればその name。なければ null"),
+      food_name: z.string().nullable().describe("一般的な食材名に正規化（例：ﾄﾘﾑﾈ → 鶏むね肉）。指定された言語で書く"),
+      master_name: z.string().nullable().describe("食材マスタに該当があればその name（日本語のまま）。なければ null"),
+      name_ja: z.string().nullable().describe("一般的な日本語の食材名（master_name がない食材だけ）"),
       quantity: z.number(),
       price_yen: z.number().int().nullable().describe("その行の値引き後の金額（税込）。冷蔵庫の写真では null"),
       remaining_pct: z
@@ -55,9 +57,16 @@ const SYSTEM = `あなたは冷蔵庫の在庫管理のために、写真から�
 
 let client: Anthropic | undefined;
 
+// 品名などは利用者の言語（lang）で返させる。期限の目安に使うマスタは日本語のまま結びつける。
+function languageNote(lang: Lang) {
+  if (lang === "ja") return "";
+  return `\n\n利用者は${LANG_FOR_AI[lang]}を使います。food_name と、冷蔵庫の写真の raw_text は${LANG_FOR_AI[lang]}で書いてください。レシートの raw_text は印字のまま、master_name は食材マスタの日本語名のままにしてください。マスタにない食材は name_ja に日本語名を入れてください。`;
+}
+
 export async function extractReceipt(
   image: { data: string; mediaType: "image/jpeg" | "image/png" },
   masterNames: string[],
+  lang: Lang = "ja",
 ): Promise<ExtractedReceipt> {
   client ??= new Anthropic();
   const response = await client.beta.messages.parse({
@@ -76,7 +85,7 @@ export async function extractReceipt(
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: image.mediaType, data: image.data } },
-          { type: "text", text: "この写真の食材を読み取ってください。" },
+          { type: "text", text: `この写真の食材を読み取ってください。${languageNote(lang)}` },
         ],
       },
     ],

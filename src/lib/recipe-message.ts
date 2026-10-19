@@ -1,5 +1,7 @@
 import type { messagingApi } from "@line/bot-sdk";
 import type { Recipe } from "./recipe-ai";
+import type { Lang } from "./i18n.ts";
+import { t } from "./messages.ts";
 
 // 買い足す食材をポストバックに直接載せる（LINE の上限は300文字）。
 const PREFIX = "shop:";
@@ -29,22 +31,23 @@ const text = (t: string, extra: Partial<messagingApi.FlexText> = {}): messagingA
   ...extra,
 });
 
-export function buildRecipes(recipes: Recipe[], shoppingUrl: string): messagingApi.FlexMessage {
+export function buildRecipes(recipes: Recipe[], shoppingUrl: string, lang: Lang = "ja"): messagingApi.FlexMessage {
+  const msg = t(lang);
   const bubbles: messagingApi.FlexBubble[] = recipes.map((r) => ({
     type: "bubble",
     size: "kilo",
     header: {
       type: "box",
       layout: "vertical",
-      contents: [text(r.title, { weight: "bold", size: "md" }), text(`約${r.minutes}分`, { size: "xs", color: "#656d76" })],
+      contents: [text(r.title, { weight: "bold", size: "md" }), text(msg.minutes(r.minutes), { size: "xs", color: "#656d76" })],
     },
     body: {
       type: "box",
       layout: "vertical",
       spacing: "sm",
       contents: [
-        text(`使う：${r.uses.join("、") || "なし"}`, { color: "#1a7f37" }),
-        ...(r.missing.length ? [text(`買い足す：${r.missing.join("、")}`, { color: "#cf222e" })] : []),
+        text(msg.uses(msg.join(r.uses) || msg.none), { color: "#1a7f37" }),
+        ...(r.missing.length ? [text(msg.missing(msg.join(r.missing)), { color: "#cf222e" })] : []),
         { type: "separator", margin: "md" },
         ...r.steps.map((s, i) => text(`${i + 1}. ${s}`, { size: "xs", margin: i === 0 ? "md" : "sm" })),
       ],
@@ -60,10 +63,10 @@ export function buildRecipes(recipes: Recipe[], shoppingUrl: string): messagingA
               style: "primary",
               color: "#06c755",
               height: "sm",
-              action: { type: "postback", label: "足りない物をリストへ", data: encodeShop(r.missing), displayText: `${r.title}の材料を買い物リストへ` },
+              action: { type: "postback", label: msg.addMissing, data: encodeShop(r.missing), displayText: msg.addMissingDisplay(r.title) },
             },
           ]
-        : [text("今ある物だけで作れるよ✨", { size: "xs", color: "#656d76", align: "center" })],
+        : [text(msg.allInStock, { size: "xs", color: "#656d76", align: "center" })],
     },
   }));
   bubbles.push({
@@ -73,17 +76,17 @@ export function buildRecipes(recipes: Recipe[], shoppingUrl: string): messagingA
       type: "box",
       layout: "vertical",
       justifyContent: "center",
-      contents: [text("足りない物は買い物リストに入れておくね🛒「買い物」でいつでも見られるよ。", { color: "#656d76" })],
+      contents: [text(msg.shoppingHint, { color: "#656d76" })],
     },
     footer: {
       type: "box",
       layout: "vertical",
-      contents: [{ type: "button", style: "link", height: "sm", action: { type: "uri", label: "買い物リストを開く", uri: shoppingUrl } }],
+      contents: [{ type: "button", style: "link", height: "sm", action: { type: "uri", label: msg.openShopping, uri: shoppingUrl } }],
     },
   });
   return {
     type: "flex",
-    altText: `🍳 今日はこんなのどう？${recipes.map((r) => r.title).join("、")}`,
+    altText: msg.recipeAlt(msg.join(recipes.map((r) => r.title))),
     contents: { type: "carousel", contents: bubbles },
   };
 }

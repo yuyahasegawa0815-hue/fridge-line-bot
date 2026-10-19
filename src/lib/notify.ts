@@ -1,4 +1,6 @@
 import type { messagingApi } from "@line/bot-sdk";
+import type { Lang } from "./i18n.ts";
+import { t } from "./messages.ts";
 
 export interface DueItem {
   id: string;
@@ -52,17 +54,18 @@ export function stepDown(pct: number): 0 | 25 | 50 {
 
 const MAX_ITEMS = 10;
 
-export function buildNotice(items: DueItem[], today: string, listUrl: string): messagingApi.FlexMessage {
+export function buildNotice(items: DueItem[], today: string, listUrl: string, lang: Lang = "ja"): messagingApi.FlexMessage {
+  const msg = t(lang);
   const shown = items.slice(0, MAX_ITEMS);
-  const title = "🌙 今日が期限の食材があるよ！今夜使ってね";
+  const title = msg.noticeTitle;
   const rows: messagingApi.FlexComponent[] = shown.flatMap((item, i) => {
-    const left = item.remaining_pct < 100 ? `（残り${item.remaining_pct}%）` : "";
+    const left = item.remaining_pct < 100 ? msg.left(item.remaining_pct) : "";
     const button = (label: string, action: ItemAction): messagingApi.FlexButton => ({
       type: "button",
       style: "secondary",
       height: "sm",
       flex: 1,
-      action: { type: "postback", label, data: encodeAction(action, item.id), displayText: `${item.name}：${label}` },
+      action: { type: "postback", label, data: encodeAction(action, item.id), displayText: `${item.name}${lang === "ja" ? "：" : ": "}${label}` },
     });
     const row: messagingApi.FlexBox = {
       type: "box",
@@ -75,18 +78,18 @@ export function buildNotice(items: DueItem[], today: string, listUrl: string): m
           layout: "horizontal",
           contents: [
             { type: "text", text: `${item.name}${left}`, weight: "bold", size: "sm", flex: 3, wrap: true },
-            { type: "text", text: dueLabel(daysUntil(item.expires_on, today)), size: "sm", align: "end", flex: 2, color: "#cf222e" },
+            { type: "text", text: daysUntil(item.expires_on, today) === 0 ? msg.noticeDue : dueLabel(daysUntil(item.expires_on, today)), size: "sm", align: "end", flex: 2, color: "#cf222e" },
           ],
         },
-        { type: "box", layout: "horizontal", spacing: "sm", contents: [button("減った", "less"), button("使い切った", "used_up"), button("捨てた", "discard")] },
+        { type: "box", layout: "horizontal", spacing: "sm", contents: [button(msg.noticeLess, "less"), button(msg.noticeUsedUp, "used_up"), button(msg.noticeDiscard, "discard")] },
       ],
     };
     return [row];
   });
-  const more = items.length > MAX_ITEMS ? `ほかに${items.length - MAX_ITEMS}件あるよ。一覧で見てね👀` : "";
+  const more = items.length > MAX_ITEMS ? msg.noticeMore(items.length - MAX_ITEMS) : "";
   return {
     type: "flex",
-    altText: `${title}：${shown.map((i) => i.name).join("、")}`,
+    altText: `${title}${lang === "ja" ? "：" : ": "}${msg.join(shown.map((i) => i.name))}`,
     contents: {
       type: "bubble",
       header: { type: "box", layout: "vertical", contents: [{ type: "text", text: title, weight: "bold", size: "md" }] },
@@ -97,7 +100,7 @@ export function buildNotice(items: DueItem[], today: string, listUrl: string): m
         spacing: "sm",
         contents: [
           ...(more ? [{ type: "text", text: more, size: "xs", color: "#656d76", wrap: true } as messagingApi.FlexText] : []),
-          { type: "button", style: "link", height: "sm", action: { type: "uri", label: "冷蔵庫の中身を見る", uri: listUrl } },
+          { type: "button", style: "link", height: "sm", action: { type: "uri", label: msg.noticeOpen, uri: listUrl } },
         ],
       },
     },

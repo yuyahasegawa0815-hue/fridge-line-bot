@@ -1,5 +1,6 @@
 "use client";
 import liff from "@line/liff";
+import { currentLang, uiFor } from "./ui-text";
 
 let ready: Promise<void> | undefined;
 
@@ -24,8 +25,13 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...init,
     headers: { ...init.headers, "Content-Type": "application/json", Authorization: `Bearer ${liff.getIDToken()}`, "X-Household": householdId() },
   });
-  const body = await res.json();
-  if (!res.ok) throw new Error(body.error ?? "通信に失敗しました");
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const ui = uiFor(currentLang());
+    // サーバーのエラー文は日本語なので、日本語以外では画面の言葉に置き換える
+    if (res.status === 401) throw new Error(ui.unauthorized);
+    throw new Error(ui.lang === "ja" ? (body.error ?? ui.networkError) : ui.networkError);
+  }
   return body as T;
 }
 

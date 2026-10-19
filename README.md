@@ -23,6 +23,8 @@ Fridgy は、LINEで使う冷蔵庫の在庫管理ボットです。家族のLIN
 - トークで「食費」→ 今月の食費・廃棄額と先月との差。食費は買った月の食材の金額、廃棄額は捨てた月に「金額 × 捨てたときの残量」で数える
 - 食費画面（LIFF）で月ごとの食費・廃棄額、種類別の内訳、捨てた物、半年の推移
 - 毎月1日の夕方に、先月の食費と廃棄額をグループに送る（記録がない世帯には送らない）
+- 日本語・英語・フランス語・韓国語・中国語（簡体字）に対応。言語はグループ／個人トークごとに1つで、最初に話しかけた人（個人トークは友だち追加した人）の LINE アプリの言語に自動で合わせる。「言語」（language など）で選び直せる。トークの返事・通知・使い方、AI が読み取る品名やレシピ、LINE から開く画面が切り替わる。コマンドはどの言語の言葉でも通じる（例：在庫／fridge／frigo／재고／库存）
+- 日本語以外の品名（milk、우유 など）は、AI で日本語の食材マスタに結びつけて期限の目安を出し、マスタの別名として覚える
 
 ## 構成
 
@@ -37,7 +39,7 @@ Fridgy は、LINEで使う冷蔵庫の在庫管理ボットです。家族のLIN
 
 ## セットアップ
 
-1. **Supabase**：プロジェクトを作り、SQL エディタで `supabase/migrations/0001_init.sql` → `supabase/seed/food_master.sql` → `supabase/migrations/0002_fridge_photo.sql` の順に実行。Storage に非公開バケット `receipts` を作る。
+1. **Supabase**：プロジェクトを作り、SQL エディタで `supabase/migrations/0001_init.sql` → `supabase/seed/food_master.sql` → `supabase/migrations/0002_fridge_photo.sql` → `supabase/migrations/0003_language.sql` の順に実行。Storage に非公開バケット `receipts` を作る。
 2. **LINE**：LINE Developers でプロバイダーを作り、次の2つのチャネルを作る。
    - Messaging API チャネル：チャネルシークレットとチャネルアクセストークン（長期）を控える。「グループトーク・複数人トークへの参加を許可する」をオン、応答メッセージはオフ。個人トークの挨拶は Fridgy が送るので、LINE Official Account Manager の「あいさつメッセージ」もオフ。
    - LINE ログインチャネル：LIFF アプリを追加（サイズ Full、エンドポイント URL は Vercel の URL、スコープ `openid`）。チャネルIDと LIFF ID を控える。

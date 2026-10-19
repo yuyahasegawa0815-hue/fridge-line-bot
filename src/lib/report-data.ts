@@ -1,3 +1,4 @@
+import { isLang, type Lang } from "./i18n";
 import { db } from "./supabase";
 import { monthReport, shiftMonth, type CostItem, type MonthReport } from "./report";
 
@@ -23,13 +24,13 @@ export async function householdsWithActivity(month: string) {
   const to = `${shiftMonth(month, 1)}-01`;
   const { data, error } = await db()
     .from("inventory_items")
-    .select("household_id, households(line_group_id)")
+    .select("household_id, households(line_group_id, language)")
     .gte("purchased_on", from)
     .lt("purchased_on", to);
   if (error) throw error;
-  const map = new Map<string, string>();
-  for (const r of data as unknown as { household_id: string; households: { line_group_id: string } }[]) {
-    map.set(r.household_id, r.households.line_group_id);
+  const map = new Map<string, { id: string; lineGroupId: string; lang: Lang }>();
+  for (const r of data as unknown as { household_id: string; households: { line_group_id: string; language: string | null } }[]) {
+    map.set(r.household_id, { id: r.household_id, lineGroupId: r.households.line_group_id, lang: isLang(r.households.language) ? r.households.language : "ja" });
   }
-  return [...map].map(([id, lineGroupId]) => ({ id, lineGroupId }));
+  return [...map.values()];
 }

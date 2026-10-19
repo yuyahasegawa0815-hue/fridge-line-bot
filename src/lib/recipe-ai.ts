@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
+import { LANG_FOR_AI, type Lang } from "./i18n";
 
 export const RecipesSchema = z.object({
   recipes: z
@@ -24,7 +25,7 @@ export interface PantryItem {
   remainingPct: number;
 }
 
-const SYSTEM = `あなたは夫婦2人暮らしの家庭の献立係です。冷蔵庫の在庫から、今日作れる家庭料理を3品提案します。
+const SYSTEM = `あなたは1〜2人暮らしの家庭の献立係です。冷蔵庫の在庫から、今日作れる家庭料理を3品提案します。
 - 期限が近い食材（残り日数が少ないもの）をできるだけ使ってください。期限が過ぎたものは使わないでください。
 - 残量が少ない食材は少量で済む使い方にしてください。
 - 3品は主菜・副菜・汁物などで偏らないようにし、同じ食材ばかりにならないようにしてください。
@@ -34,7 +35,7 @@ const SYSTEM = `あなたは夫婦2人暮らしの家庭の献立係です。冷
 
 let client: Anthropic | undefined;
 
-export async function suggestRecipes(items: PantryItem[], request: string): Promise<Recipe[]> {
+export async function suggestRecipes(items: PantryItem[], request: string, lang: Lang = "ja"): Promise<Recipe[]> {
   client ??= new Anthropic();
   const list = items
     .map((i) => {
@@ -53,7 +54,9 @@ export async function suggestRecipes(items: PantryItem[], request: string): Prom
     messages: [
       {
         role: "user",
-        content: `冷蔵庫の在庫：\n${list || "（なし）"}\n\n${request ? `希望：${request}\n\n` : ""}3品提案してください。`,
+        content: `冷蔵庫の在庫：\n${list || "（なし）"}\n\n${request ? `希望：${request}\n\n` : ""}3品提案してください。${
+          lang === "ja" ? "" : `料理名・missing・手順は${LANG_FOR_AI[lang]}で書いてください。uses は在庫の名前そのままにしてください。`
+        }`,
       },
     ],
   });

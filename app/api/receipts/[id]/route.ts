@@ -11,7 +11,7 @@ export async function GET(req: Request, { params }: Ctx) {
   const { id } = await params;
   const { data, error } = await db()
     .from("receipts")
-    .select("id, kind, store_name, purchased_on, total_yen, status, receipt_lines(id, line_no, raw_text, food_name, is_food, quantity, price_yen, confidence, storage, remaining_pct)")
+    .select("id, kind, store_name, purchased_on, total_yen, status, receipt_lines(id, line_no, raw_text, food_name, food_master_id, is_food, quantity, price_yen, confidence, storage, remaining_pct)")
     .eq("id", id)
     .eq("household_id", member.household_id)
     .maybeSingle();

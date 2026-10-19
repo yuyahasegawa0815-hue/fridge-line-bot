@@ -2,6 +2,9 @@ import { db } from "./supabase";
 import { estimateExpiry, lossYen, pickStorage, type Storage } from "./expiry";
 import { stepDown, todayJst, type DueItem, type ItemAction } from "./notify";
 import type { Member } from "./household";
+import { findMasterByName, loadMaster, resolveForeignNames } from "./food-master";
+import { formatYen, isLang, type Lang } from "./i18n";
+import { t } from "./messages";
 
 export async function listActive(householdId: string) {
   const { data, error } = await db()
@@ -24,11 +27,9 @@ export interface ManualItem {
 
 // トークや一覧画面からの手入力登録。すでに冷蔵庫にある物は買った日をさかのぼって期限を出す。
 export async function addManual(member: Member, input: ManualItem) {
-  const cols = "id, default_storage, fridge_days, freezer_days, pantry_days";
-  const byName = await db().from("food_master").select(cols).eq("name", input.name).limit(1).maybeSingle();
-  const m =
-    byName.data ??
-    (await db().from("food_master").select(cols).contains("aliases", [input.name]).limit(1).maybeSingle()).data;
+  let m = await findMasterByName(input.name);
+  // 日本語以外の名前（milk、우유 など）は AI で日本語のマスタに結びつけ、次からは別名で引けるようにする
+  if (!m && member.lang !== "ja") m = (await resolveForeignNames([input.name], await loadMaster())).get(input.name) ?? null;
   const purchasedOn = input.purchasedOn ?? todayJst();
   const storage: Storage = m ? pickStorage(input.storage ?? null, m.default_storage, m) : (input.storage ?? "fridge");
   const expiresOn = m ? estimateExpiry(purchasedOn, storage, m) : null;
@@ -78,36 +79,38 @@ export async function updateExpiry(householdId: string, itemId: string, expiresO
 }
 
 // 期限通知のボタン（減った・使い切った・捨てた）を反映し、返信用の一文を返す。
-export async function applyNoticeAction(householdId: string, itemId: string, action: ItemAction): Promise<string> {
+export async function applyNoticeAction(householdId: string, itemId: string, action: ItemAction, lang: Lang = "ja"): Promise<string> {
+  const msg = t(lang);
   const { data: item } = await db()
     .from("inventory_items")
     .select("name, remaining_pct, price_yen, status")
     .eq("id", itemId)
     .eq("household_id", householdId)
     .maybeSingle();
-  if (!item) return "あれ、その食材が見つからなかったよ🤔";
-  if (item.status !== "active") return `${item.name}はもう記録してあるよ👌`;
+  if (!item) return msg.actionNotFound;
+  if (item.status !== "active") return msg.actionAlready(item.name);
   if (action === "discard") {
     await updateRemaining(householdId, itemId, 0, true);
     const loss = lossYen(item.price_yen, item.remaining_pct);
-    return `${item.name}は「捨てた」で記録したよ${loss ? `（ロス ${loss.toLocaleString()}円）` : ""}。次はおいしく食べきろうね🍀`;
+    return msg.actionDiscarded(item.name, loss ? formatYen(loss, lang) : "");
   }
   const next = action === "used_up" ? 0 : stepDown(item.remaining_pct);
   await updateRemaining(householdId, itemId, next);
-  return next === 0 ? `${item.name}、使い切ったね！ナイス👏` : `${item.name}の残りを${next}%にしたよ📝`;
+  return next === 0 ? msg.actionUsedUp(item.name) : msg.actionRemaining(item.name, next);
 }
 
 // 期限が今日の在庫を世帯ごとに返す。
 export async function dueItemsByHousehold(today: string) {
   const { data, error } = await db()
     .from("inventory_items")
-    .select("id, name, expires_on, remaining_pct, households(id, line_group_id)")
+    .select("id, name, expires_on, remaining_pct, households(id, line_group_id, language)")
     .eq("status", "active")
     .eq("expires_on", today);
   if (error) throw error;
-  const groups = new Map<string, { id: string; lineGroupId: string; items: DueItem[] }>();
-  for (const row of data as unknown as (DueItem & { households: { id: string; line_group_id: string } })[]) {
-    const g = groups.get(row.households.id) ?? { id: row.households.id, lineGroupId: row.households.line_group_id, items: [] };
+  const groups = new Map<string, { id: string; lineGroupId: string; lang: Lang; items: DueItem[] }>();
+  for (const row of data as unknown as (DueItem & { households: { id: string; line_group_id: string; language: string | null } })[]) {
+    const h = row.households;
+    const g = groups.get(h.id) ?? { id: h.id, lineGroupId: h.line_group_id, lang: isLang(h.language) ? h.language : "ja", items: [] };
     g.items.push({ id: row.id, name: row.name, expires_on: row.expires_on, remaining_pct: row.remaining_pct });
     groups.set(row.households.id, g);
   }

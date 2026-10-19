@@ -78,8 +78,7 @@ export interface Messages {
 const ja: Messages = {
   greeting: (personal) => `はじめまして！冷蔵庫の見張り番、Fridgy（フリッジー）だよ🧊✨
 
-${personal ? "あなたやご家族" : "このグループ"}の冷蔵庫の中身を覚えておいて、
-「あれ、まだあったっけ？」や「気づいたら期限切れ…」を減らすお手伝いをするね。
+${personal ? "あなたやご家族" : "このグループ"}の冷蔵庫の中身を覚えておいて、「あれ、まだあったっけ？」や「気づいたら期限切れ…」を減らすお手伝いをするね。
 
 これからよろしくね😊`,
   help: (link) => `📖 僕の使い方だよ
@@ -115,7 +114,10 @@ ${personal ? "あなたやご家族" : "このグループ"}の冷蔵庫の中�
 💰「食費」で今月の食費と、捨てちゃった金額を出すよ（毎月1日には先月分も届くよ）
 　${link("/report")}
 
-🌐「言語」で話す言葉を変えられるよ（English / Français / 한국어 / 中文）
+【言葉を変える】
+🌐「言語」と送ると、話す言葉を選べるよ
+　日本語 / English / Français / 한국어 / 中文
+　（「language」と送っても選べるよ）
 
 困ったら、いつでも「使い方」って送ってね😊`,
   setupAlt: "1人で使う？それとも誰かと共有する？",
@@ -193,44 +195,45 @@ ${personal ? "あなたやご家族" : "このグループ"}の冷蔵庫の中�
 const en: Messages = {
   greeting: (personal) => `Hi there! I'm Fridgy, your fridge keeper 🧊✨
 
-I'll remember what's in ${personal ? "your" : "this group's"} fridge
-and help you stop asking "do we still have that?" or finding things past their date.
+I'll remember what's in ${personal ? "your" : "this group's"} fridge and help you stop asking "do we still have that?" or finding things past their date.
 
 Nice to meet you 😊`,
   help: (link) => `📖 How to use me
 
 [Teach me what you have]
 📸 Send a photo of a receipt
- → I'll send you a page to check what I read
+　→ I'll send you a page to check what I read
 🧊 A photo of the inside of your fridge works too
- → Tick what's really there (and add anything I missed)
+　→ Tick what's really there (and add anything I missed)
 ✏️ To type it in: "add milk 198"
- For several items, one per line 👇
- add
- cabbage half 3d
- pork 400 freezer
- eggs
- (price, amount left (full/half/little), fridge/freezer/pantry and "3d" = bought 3 days ago are all optional)
- You can also add on this page: ${link("/inventory")}
+　For several items, one per line 👇
+　add
+　cabbage half 3d
+　pork 400 freezer
+　eggs
+　(price, amount left (full/half/little), fridge/freezer/pantry and "3d" = bought 3 days ago are all optional)
+　You can also add on this page: ${link("/inventory")}
 
 [Check & record]
 🥬 "fridge" shows what's in your fridge
- ${link("/inventory")}
+　${link("/inventory")}
 ⏰ I'll message you at 5pm on the day something expires
- → Tap "Used some", "Used up" or "Threw away"
+　→ Tap "Used some", "Used up" or "Threw away"
 
 [Meals & shopping]
 🍳 "recipe" gives you 3 ideas from what you have
- e.g. recipe italian / recipe 15 min
+　e.g. recipe italian / recipe 15 min
 🛒 "shopping" shows your shopping list
- ${link("/shopping")}
+　${link("/shopping")}
 ➕ "buy milk eggs" adds to the list
 
 [Money]
 💰 "spending" shows this month's food spending and how much was thrown away (last month's arrives on the 1st)
- ${link("/report")}
+　${link("/report")}
 
-🌐 "language" changes the language I speak
+[Language]
+🌐 Send "language" to choose the language I speak
+　日本語 / English / Français / 한국어 / 中文
 
 Need me? Just send "help" 😊`,
   setupAlt: "Use me alone, or share with someone?",
@@ -308,44 +311,46 @@ Already have a group? Just add me from that group's "Invite" 🙆
 const fr: Messages = {
   greeting: (personal) => `Salut ! Je suis Fridgy, le gardien de ton frigo 🧊✨
 
-Je retiens ce qu'il y a dans ${personal ? "ton frigo" : "le frigo de ce groupe"}
-pour t'éviter les « il en reste encore ? » et les produits périmés oubliés.
+Je retiens ce qu'il y a dans ${personal ? "ton frigo" : "le frigo de ce groupe"} pour t'éviter les « il en reste encore ? » et les produits périmés oubliés.
 
 Ravi de te rencontrer 😊`,
   help: (link) => `📖 Comment m'utiliser
 
 [Ce que tu as acheté]
 📸 Envoie la photo d'un ticket de caisse
- → je t'envoie une page pour vérifier ce que j'ai lu
+　→ je t'envoie une page pour vérifier ce que j'ai lu
 🧊 Une photo de l'intérieur du frigo marche aussi
- → coche ce qui y est vraiment (et ajoute ce que j'ai raté)
+　→ coche ce qui y est vraiment (et ajoute ce que j'ai raté)
 ✏️ Pour l'écrire : « ajouter lait 198 »
- Plusieurs articles ? Un par ligne 👇
- ajouter
- chou moitié 3j
- porc 400 congélateur
- œufs
- (prix, quantité restante (plein/moitié/peu), frigo/congélateur/placard et « 3j » = acheté il y a 3 jours sont facultatifs)
- Tu peux aussi ajouter sur cette page : ${link("/inventory")}
+　Plusieurs articles ? Un par ligne 👇
+　ajouter
+　chou moitié 3j
+　porc 400 congélateur
+　œufs
+　(prix, quantité restante (plein/moitié/peu), frigo/congélateur/placard et « 3j » = acheté il y a 3 jours sont facultatifs)
+　Tu peux aussi ajouter sur cette page : ${link("/inventory")}
 
 [Voir et noter]
 🥬 « frigo » montre ce qu'il y a dans ton frigo
- ${link("/inventory")}
+　${link("/inventory")}
 ⏰ Je te préviens à 17 h le jour où un produit expire
- → touche « Entamé », « Terminé » ou « Jeté »
+　→ touche « Entamé », « Terminé » ou « Jeté »
 
 [Repas et courses]
 🍳 « recette » te propose 3 idées avec ce que tu as
- ex. : recette italienne / recette 15 min
+　ex. : recette italienne / recette 15 min
 🛒 « courses » affiche ta liste de courses
- ${link("/shopping")}
+　${link("/shopping")}
 ➕ « acheter lait œufs » l'ajoute à la liste
 
 [Budget]
 💰 « dépenses » affiche les dépenses alimentaires du mois et ce qui a été jeté (le bilan du mois précédent arrive le 1er)
- ${link("/report")}
+　${link("/report")}
 
-🌐 « langue » pour changer ma langue
+[Langue]
+🌐 Envoie « langue » pour choisir la langue que je parle
+　日本語 / English / Français / 한국어 / 中文
+　(« language » marche aussi)
 
 Besoin d'aide ? Envoie « aide » 😊`,
   setupAlt: "Tu m'utilises seul ou à plusieurs ?",
@@ -423,44 +428,46 @@ Tu as déjà un groupe ? Ajoute-moi simplement avec « Inviter » 🙆
 const ko: Messages = {
   greeting: (personal) => `안녕! 냉장고 지킴이 Fridgy(프리지)야 🧊✨
 
-${personal ? "너와 가족의" : "이 그룹의"} 냉장고에 뭐가 있는지 기억해 두고,
-"그거 아직 있었나?"나 "어느새 유통기한이 지났네…"를 줄이도록 도와줄게.
+${personal ? "너와 가족의" : "이 그룹의"} 냉장고에 뭐가 있는지 기억해 두고, "그거 아직 있었나?"나 "어느새 유통기한이 지났네…"를 줄이도록 도와줄게.
 
 앞으로 잘 부탁해 😊`,
   help: (link) => `📖 내 사용법이야
 
 [기억시키기]
 📸 영수증 사진을 보내 줘
- → 읽은 내용을 확인하는 화면을 보내 줄게
+　→ 읽은 내용을 확인하는 화면을 보내 줄게
 🧊 냉장고 안 사진도 OK
- → 찾은 식재료 중에서 지금 있는 걸 골라 줘 (안 찍힌 것도 추가할 수 있어)
+　→ 찾은 식재료 중에서 지금 있는 걸 골라 줘 (안 찍힌 것도 추가할 수 있어)
 ✏️ 직접 입력할 땐 "추가 우유 198"
- 여러 개면 한 줄에 하나씩 👇
- 추가
- 양배추 반 3일전
- 돼지고기 400 냉동
- 달걀
- (금액, 남은 양(가득/반/조금), 냉장/냉동/실온, ○일전은 생략해도 돼)
- 화면에서도 넣을 수 있어: ${link("/inventory")}
+　여러 개면 한 줄에 하나씩 👇
+　추가
+　양배추 반 3일전
+　돼지고기 400 냉동
+　달걀
+　(금액, 남은 양(가득/반/조금), 냉장/냉동/실온, ○일전은 생략해도 돼)
+　화면에서도 넣을 수 있어: ${link("/inventory")}
 
 [보기·기록하기]
 🥬 "재고"로 냉장고 안을 보여 줄게
- ${link("/inventory")}
+　${link("/inventory")}
 ⏰ 유통기한 당일 오후 5시에 알려 줄게
- → "줄었어", "다 썼어", "버렸어" 버튼으로 알려 줘
+　→ "줄었어", "다 썼어", "버렸어" 버튼으로 알려 줘
 
 [식사와 장보기]
 🍳 "레시피"로 지금 있는 재료로 3가지 요리를 생각해 줄게
- 예: 레시피 한식 / 레시피 15분
+　예: 레시피 한식 / 레시피 15분
 🛒 "장보기"로 장보기 목록
- ${link("/shopping")}
+　${link("/shopping")}
 ➕ "사기 우유 달걀"로 목록에 추가
 
 [돈]
 💰 "식비"로 이번 달 식비와 버린 금액을 알려 줄게 (매달 1일에는 지난달 것도 보내 줄게)
- ${link("/report")}
+　${link("/report")}
 
-🌐 "언어"로 내가 쓰는 말을 바꿀 수 있어
+[언어 바꾸기]
+🌐 "언어"라고 보내면 내가 쓰는 말을 고를 수 있어
+　日本語 / English / Français / 한국어 / 中文
+　("language"라고 보내도 돼)
 
 궁금하면 언제든 "사용법"이라고 보내 줘 😊`,
   setupAlt: "혼자 쓸래? 아니면 누군가와 같이 쓸래?",
@@ -538,44 +545,46 @@ ${personal ? "너와 가족의" : "이 그룹의"} 냉장고에 뭐가 있는지
 const zh: Messages = {
   greeting: (personal) => `你好！我是冰箱小管家 Fridgy 🧊✨
 
-我会记住${personal ? "你和家人" : "这个群组"}的冰箱里有什么，
-帮你减少"那个还有吗？"和"不知不觉就过期了…"的情况。
+我会记住${personal ? "你和家人" : "这个群组"}的冰箱里有什么，帮你减少"那个还有吗？"和"不知不觉就过期了…"的情况。
 
 今后请多关照 😊`,
   help: (link) => `📖 我的使用方法
 
 【让我记住】
 📸 发送购物小票的照片
- → 我会发给你一个确认识别结果的页面
+　→ 我会发给你一个确认识别结果的页面
 🧊 冰箱里面的照片也可以
- → 从找到的食材里选出现在有的（没拍到的也能添加）
+　→ 从找到的食材里选出现在有的（没拍到的也能添加）
 ✏️ 手动输入请发"添加 牛奶 198"
- 多个食材请每行一个 👇
- 添加
- 卷心菜 一半 3天前
- 猪肉 400 冷冻
- 鸡蛋
- （价格、剩余量（满/一半/少许）、冷藏/冷冻/常温、○天前都可以省略）
- 也可以在页面上添加：${link("/inventory")}
+　多个食材请每行一个 👇
+　添加
+　卷心菜 一半 3天前
+　猪肉 400 冷冻
+　鸡蛋
+　（价格、剩余量（满/一半/少许）、冷藏/冷冻/常温、○天前都可以省略）
+　也可以在页面上添加：${link("/inventory")}
 
 【查看・记录】
 🥬 发"库存"查看冰箱里的东西
- ${link("/inventory")}
+　${link("/inventory")}
 ⏰ 保质期当天下午5点提醒你
- → 用"用了一些""用完了""扔掉了"按钮告诉我
+　→ 用"用了一些""用完了""扔掉了"按钮告诉我
 
 【做饭和购物】
 🍳 发"食谱"，我会用现有食材想3道菜
- 例：食谱 中餐 / 食谱 15分钟
+　例：食谱 中餐 / 食谱 15分钟
 🛒 发"购物"查看购物清单
- ${link("/shopping")}
+　${link("/shopping")}
 ➕ 发"买 牛奶 鸡蛋"添加到清单
 
 【花费】
 💰 发"伙食费"查看本月伙食费和扔掉的金额（每月1日也会发上个月的）
- ${link("/report")}
+　${link("/report")}
 
-🌐 发"语言"可以切换我说的语言
+【切换语言】
+🌐 发"语言"就可以选择我说的语言
+　日本語 / English / Français / 한국어 / 中文
+　（发"language"也可以）
 
 有问题随时发"帮助"给我 😊`,
   setupAlt: "一个人用？还是和别人一起用？",
